@@ -1,7 +1,8 @@
 # Diarization
-The main goal of this repo is to test state of the art diarization systems. 
+Speaker Diarization is the realm of techniques that focus on answering "Who spoke when?". The main goal of this repo is to test state-of-the-art diarization systems. To do so, we will test different speaker diarization datasets. The initial efforts will consider the Fisher Spanish Speech, found in the [Linguistic Data Consortium](	https://doi.org/10.35111/skrw-t863).
 
 ## 0. Converting files to RTTM.
+There exist multiple formats from which speaker diarization is represented:
 Rich Transcription Time Marked (RTTM) files are space-delimited text files containing one turn per line, each line containing ten fields:
 
 * Type -- segment type; should always by SPEAKER
@@ -15,8 +16,4 @@ Rich Transcription Time Marked (RTTM) files are space-delimited text files conta
 * Confidence Score -- system confidence (probability) that information is correct; should always be < NA >
 * Signal Lookahead Time -- should always be < NA >
 
-We have 819 `.tdf` files that contain all this information. We need to convert these files into 3 different files: 
-1. `train.rttm`
-2. `dev.rttm`
-3. `test.rttm`
-For doing so, we are going to open all these files with Pandas and concatenate them, creating a big dataframe with all of the instances. Then doing this partition into different files.
+In the Fisher Spanish Speech, there appear 819 `.tdf` files. We will convert them to `.rttm` by using `utils/convert_to_rttm.py`.
