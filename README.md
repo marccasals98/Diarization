@@ -1,5 +1,5 @@
 # Diarization
-Speaker Diarization is the realm of techniques that focus on answering "Who spoke when?". The main goal of this repo is to test state-of-the-art diarization systems. To do so, we will test different speaker diarization datasets. The initial efforts will consider the Fisher Spanish Speech, found in the [Linguistic Data Consortium](	https://doi.org/10.35111/skrw-t863).
+Speaker Diarization is the realm of techniques that focus on answering "Who spoke when?". The main goal of this repo is to test state-of-the-art diarization systems. To do so, we will test different speaker diarization datasets. The initial efforts will consider the [VoxConverse](https://www.robots.ox.ac.uk/~vgg/data/voxconverse/) dataset.
 
 ## 0. Converting files to RTTM.
 There exist multiple formats from which speaker diarization is represented:
@@ -16,4 +16,9 @@ Rich Transcription Time Marked (RTTM) files are space-delimited text files conta
 * Confidence Score -- system confidence (probability) that information is correct; should always be < NA >
 * Signal Lookahead Time -- should always be < NA >
 
-In the Fisher Spanish Speech, there appear 819 `.tdf` files. We will convert them to `.rttm` by using `utils/convert_to_rttm.py`.
+VoxConverse is an audio-visual diarization dataset consisting of over 50 hours of multispeaker clips of human speech, extracted from YouTube videos. 
+
+## Bibliography
+J. S. Chung*, J. Huh*, A. Nagrani*, T. Afouras, A. Zisserman
+Spot the conversation: speaker diarisation in the wild  
+Interspeech, 2020
