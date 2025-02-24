@@ -2,3 +2,6 @@ torch==2.6.0
 numpy==2.2.3
 pandas==2.2.3
 torchaudio==2.6.0
+ffmpeg==1.4
+soundfile==0.13.1
+tqdm==4.67.1
