@@ -9,7 +9,7 @@ class ArgsParser:
         self.parser.add_argument(
             '--audio_path',
             type=str,
-            default='/gpfs/projects/bsc88/speech/data/raw_data/diarization/fisher_spa/data/speech',
+            default='/gpfs/projects/bsc88/speech/data/raw_data/diarization/voxconverse/audio/dev/audio',
         )
         self.parser.add_argument(
             '--transcriptions_path',
