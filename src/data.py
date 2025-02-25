@@ -9,11 +9,22 @@ import torch
 from tqdm import tqdm
 import ipdb
 
-def load_audio(audio_path)->list:
+def load_audio(audio_path: str)->list:
     audio, sr = torchaudio.load(audio_path)
     return audio, sr
 
-def read_rttm(rttm_path)->Tuple[list, list]:
+def read_rttm(rttm_path: str)->Tuple[list, list]:
+    """This function reads rttm files and returns the speaker turns and a list of the speakers.
+
+    We want a list of the speakers because it is the most optimal way to calculate
+    the dimensions of the label vector.
+
+    Args:
+        rttm_path (str): The path to the rttm file.
+
+    Returns:
+        Tuple[list, list]: The speaker turns and the speakers.
+    """
     results = []
     speakers = []
     with open(rttm_path, 'r') as f:
@@ -37,6 +48,14 @@ def read_rttm(rttm_path)->Tuple[list, list]:
     return results, speakers
 
 def get_files_of_path(path: str)->list:
+    """Given a path, this function returns a list of all the files in that path.
+
+    Args:
+        path (str): The path we want to retrieve the files.
+
+    Returns:
+        list: The list with the correspondant files.
+    """
     files = []
     for root, _, filenames in os.walk(path):
         for filename in filenames:
@@ -148,52 +167,6 @@ class TrainDataset(data.Dataset):
 
         return label_vector
     
-    #region remove?
-    def read_tdf(self, path) -> Tuple[dict, pd.DataFrame]:
-        with open(path, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-        
-        metadata_lines = []
-        data_lines = []
-
-        for line in lines:
-            if line.startswith(';;'):
-                metadata_lines.append(line)
-            else:
-                data_lines.append(line)
-        print(f"metadata_lines: {metadata_lines}")
-        print(f"data_lines: {data_lines}")
-        # Extract metadata.
-        metadata = {}
-        for meta_line in metadata_lines:
-            if "sectionTypes" in meta_line:
-                metadata["sectionTypes"] = meta_line.split()[-1]  # Assuming it's the last element
-            elif "sectionBoundaries" in meta_line:
-                metadata["sectionBoundaries"] = meta_line.split()[-1]
-        # Define column names based on the file's header structure
-        column_names = [
-            "file", "channel", "start", "end", "speaker", "speakerType",
-            "speakerDialect", "transcript", "section", "turn", "segment"
-        ]
-        # Read the data part into a DataFrame
-
-        data = pd.read_csv(
-            StringIO("\n".join(data_lines)),
-            delim_whitespace=True,
-            names=column_names
-        )
-
-        return metadata, data        
-
-    def open_files(self):
-        for root, paths, files in os.walk(self.rttm_paths):
-            for file in files:
-                print(f"path: {os.path.join(root,file)}")
-                metadata, data = self.read_tdf(os.path.join(root,file))
-            print(f"metadata: {metadata}")
-            print(f"data: {data}")
-    #endregion
-
     def __len__(self):
         return len(self.segments)
     
