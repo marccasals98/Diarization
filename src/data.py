@@ -7,6 +7,7 @@ import torchaudio
 import numpy as np
 import torch
 from tqdm import tqdm
+import ipdb
 
 def load_audio(audio_path)->list:
     audio, sr = torchaudio.load(audio_path)
@@ -29,7 +30,10 @@ def read_rttm(rttm_path)->Tuple[list, list]:
                 duration = float(parts[4])
                 speaker = parts[7]
                 results.append((start, duration, speaker))
-                speakers.append(speaker)
+                if speaker not in speakers:
+                    speakers.append(speaker)
+                else:
+                    continue
     return results, speakers
 
 def get_files_of_path(path: str)->list:
@@ -63,7 +67,7 @@ class TrainDataset(data.Dataset):
                 allow_overlap, 
                 max_num_speakers,
                 transform=None,
-                frame_length=100):
+                frame_length=0.025):
         
         self.audio_files = audio_files
         self.rttm_paths = rttm_paths
@@ -71,7 +75,7 @@ class TrainDataset(data.Dataset):
         self.allow_overlap = allow_overlap
         self.max_num_speakers = max_num_speakers
         self.transform = transform
-        self.frame_length = frame_length
+        self.frame_length = frame_length # in seconds
         self.precompute_segments()
 
     def precompute_segments(self):
@@ -81,8 +85,8 @@ class TrainDataset(data.Dataset):
         """
         print("Precomputing segments...")
         self.segments = []
-        audio_files = get_files_of_path(self.audio_files)
-        rttm_files = get_files_of_path(self.rttm_paths)
+        audio_files = sorted(get_files_of_path(self.audio_files))
+        rttm_files = sorted(get_files_of_path(self.rttm_paths))
 
         if len(audio_files) != len(rttm_files):
             print(f"audio_files: {len(audio_files)}")
@@ -95,6 +99,7 @@ class TrainDataset(data.Dataset):
             n_samples =len(audio[0])
             seg_samples = int(self.segment_length * sr)
 
+            # we iterate over the start of each segment
             for start in range(0, n_samples-seg_samples + 1, seg_samples):
                 labels = self.compute_labels_for_segment(turns, start / sr, (start + seg_samples) / sr, speakers)
                 self.segments.append((audio_file, start / sr, labels))
@@ -104,16 +109,16 @@ class TrainDataset(data.Dataset):
         file into a frame-level label vector for a fixed-length audio segment.
 
         Args:
-            turns (list): _description_
-            start (float): _description_
-            end (float): _description_
+            turns (list): the list of speaker turns
+            start (float): the start of the segment
+            end (float): the end of the segment
 
         Returns:
-            np.array: _description_
+            np.array: the frame-level label vector that comprehends the speaker turns
         """
 
         # calculate the number of frames in the segment
-        n_frames = int(self.segment_length * self.frame_length)
+        n_frames = int(self.segment_length / self.frame_length)
 
         # Create a mapping of speaker names to indices
         num_speakers = len(speakers)
@@ -192,7 +197,21 @@ class TrainDataset(data.Dataset):
     def __len__(self):
         return len(self.segments)
     
-    def __getitem__(self, index):
+    def __getitem__(self, index: int)->Tuple[torch.Tensor, torch.Tensor]:
+        """_summary_
+
+        The audio returned is of length `segment_length` seconds. In number of samples it is `segment_length * sr`.
+
+        The labels are a binary matrix of shape `(num_frames, num_speakers)`.
+        Each row corresponds to a frame in the audio segment, and each column corresponds to a speaker. 
+        If a speaker is speaking in a frame, the corresponding column will be 1, otherwise 0.
+
+        Args:
+            index (int): The index of the sample we want to retrieve.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: Returns an audio of shape `segment_length * sr` and the labels of shape `(num_frames, num_speakers)`
+        """
         audio_file, start_time, labels = self.segments[index]
         audio, sr = load_audio(audio_file)
         start_sample = int(start_time * sr)
@@ -210,16 +229,3 @@ class TrainDataset(data.Dataset):
         audio_tensor = torch.tensor(audio_segment, dtype=torch.float)
         label_tensor = torch.tensor(labels, dtype=torch.long)
         return audio_tensor, label_tensor
-
-data = TrainDataset(
-    audio_files="/gpfs/projects/bsc88/speech/data/raw_data/diarization/voxconverse/audio/dev/audio",
-    rttm_paths="/gpfs/projects/bsc88/speech/data/raw_data/diarization/voxconverse/dev",
-    segment_length=5,
-    allow_overlap=True,
-    max_num_speakers=2,
-    frame_length=100
-)
-audio_label = data[0]
-audio_tensor, label_tensor = audio_label
-print(audio_tensor.shape)
-print(label_tensor.shape)
