@@ -80,11 +80,11 @@ def speaker_to_index(speaker_list: list)->dict:
 
 class TrainDataset(data.Dataset):
     def __init__(self, 
-                audio_files,
-                rttm_paths, 
-                segment_length, 
-                allow_overlap, 
-                max_num_speakers,
+                audio_files: str,
+                rttm_paths: str, 
+                segment_length: int, 
+                allow_overlap: bool, 
+                max_num_speakers: int,
                 transform=None,
                 frame_length=0.025):
         
@@ -92,7 +92,7 @@ class TrainDataset(data.Dataset):
         self.rttm_paths = rttm_paths
         self.segment_length = segment_length
         self.allow_overlap = allow_overlap
-        self.max_num_speakers = max_num_speakers
+        self.max_num_speakers = max_num_speakers # HACK implement maximum number of speakers
         self.transform = transform
         self.frame_length = frame_length # in seconds
         self.precompute_segments()

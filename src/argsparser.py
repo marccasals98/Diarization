@@ -12,9 +12,39 @@ class ArgsParser:
             default='/gpfs/projects/bsc88/speech/data/raw_data/diarization/voxconverse/audio/dev/audio',
         )
         self.parser.add_argument(
-            '--transcriptions_path',
+            '--rttm_path',
             type=str,
-            default='/gpfs/projects/bsc88/speech/data/raw_data/diarization/fisher_spa_tr/data/transcripts',
+            default="/gpfs/projects/bsc88/speech/data/raw_data/diarization/voxconverse/dev",
+        )
+        self.parser.add_argument(
+            '--segment_length',
+            type=int,
+            default=5,
+        )
+        self.parser.add_argument(
+            '--batch_size',
+            type=int,
+            default=32,
+        )
+        self.parser.add_argument(
+            '--allow_overlap',
+            type=bool,
+            default=True,
+        )
+        self.parser.add_argument(
+            '--max_num_speakers',
+            type=int,
+            default=None,
+        )
+        self.parser.add_argument(
+            '--frame_length',
+            type=float,
+            default=0.025,
+        )
+        self.parser.add_argument(
+            '--num_workers',
+            type=int,
+            default=4,
         )
         self.parser.add_argument(
             '--max_epochs',
