@@ -6,6 +6,8 @@ import torch
 import numpy as np
 from torch.utils.data import DataLoader
 from torch import optim
+from eend import EEND_Model
+from torch import nn
 #region logging
 # Logging
 # -------
@@ -33,6 +35,9 @@ class Trainer:
         self.set_device()
         self.set_random_seed()
         self.load_training_data()
+        self.load_network()
+        self.load_loss_function()
+        self.load_optimizer()
         self.main()
 
     #region initialization
@@ -67,13 +72,58 @@ class Trainer:
     
     #region Loaders
     def load_network(self):
-        ...
+        logger.info("Loading the network...")
+
+        self.net = EEND_Model(self.params, self.device)
+
+        # Data Parallelism 
+        if torch.cuda.device_count() > 1:
+            self.net = nn.DataParallel(self.net)
+            logger.info("Data Parallelism enabled.")
+        self.net.to(self.device)
+
+        # Print the number of trainable parameters
+        self.total_trainable_params = 0
+        parms_dict = {}
+
+        logger.info(f"Detail of every trainable layer:")
+        for name, parameter in self.net.named_parameters():
+
+            layer_name = name.split(".")[1]
+            if layer_name not in parms_dict.keys():
+                parms_dict[layer_name] = 0
+
+            logger.debug(f"name: {name}, layer_name: {layer_name}")
+
+            if not parameter.requires_grad:
+                continue
+            trainable_params = parameter.numel()
+
+            logger.info(f"{name} is trainable with {parameter.numel()} parameters")
+            
+            parms_dict[layer_name] = parms_dict[layer_name] + trainable_params
+            
+            self.total_trainable_params += trainable_params
+        
+        # Check if this is correct
+        logger.info(f"Total trainable parameters per layer:{self.total_trainable_params}")
+        for layer_name in parms_dict.keys():
+            logger.info(f"{layer_name}: {parms_dict[layer_name]}")
+
+        #summary(self.net, (150, self.params.feature_extractor_output_vectors_dimension))
+
+        logger.info(f"Network loaded, total_trainable_params: {self.total_trainable_params}")
+
+        logger.info("Network loaded.")
     def load_loss_function(self):
         ...
     def load_optimizer(self):
         logger.info("Loading the optimizer...")
 
         if self.params.optimizer == 'adam':
+            logger.info(f"self.net.parameters(): {self.net.parameters()}")
+            logger.info(f"self.net.parameters(): {list(self.net.parameters())}")
+            logger.info(f"self.net.parameters(): {list(filter(lambda p: p.requires_grad, self.net.parameters()))}")
             self.optimizer = optim.Adam(
                 filter(lambda p: p.requires_grad, self.net.parameters()),
                 lr=self.params.learning_rate,

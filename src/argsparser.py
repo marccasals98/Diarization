@@ -47,6 +47,26 @@ class ArgsParser:
             default=4,
         )
         self.parser.add_argument(
+            '--optimizer',
+            type=str,
+            default='adam',
+        )
+        self.parser.add_argument(
+            '--learning_rate',
+            type=float,
+            default=0.001,
+        )
+        self.parser.add_argument(
+            '--weight_decay',
+            type=float,
+            default=0.01,
+        )
+        self.parser.add_argument(
+            '--load_checkpoint',
+            type=bool,
+            default=False,
+        )
+        self.parser.add_argument(
             '--max_epochs',
             type=int,
             default=5,
