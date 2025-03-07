@@ -78,6 +78,24 @@ def speaker_to_index(speaker_list: list)->dict:
         speaker_indices[speaker] = i
     return speaker_indices
 
+def pad_labels(labels: np.array, target_num: int) -> np.array:
+    """
+    Pads the label matrix to have a fixed number of columns (speakers).
+    
+    Args:
+        labels (np.array): Label matrix of shape (num_frames, current_num_speakers)
+        target_num (int): The desired number of speakers (columns)
+    
+    Returns:
+        np.array: Label matrix padded to shape (num_frames, target_num)
+    """
+    num_frames, current_num = labels.shape
+    print("current_num:", current_num)
+    if current_num < target_num:
+        pad_width = ((0, 0), (0, target_num - current_num))
+        labels = np.pad(labels, pad_width, mode='constant')
+        return labels
+
 class TrainDataset(data.Dataset):
     def __init__(self, 
                 audio_files: str,
@@ -169,7 +187,7 @@ class TrainDataset(data.Dataset):
     
     def __len__(self):
         return len(self.segments)
-    
+
     def __getitem__(self, index: int)->Tuple[torch.Tensor, torch.Tensor]:
         """_summary_
 
@@ -197,6 +215,10 @@ class TrainDataset(data.Dataset):
             audio_segment = np.pad(audio_segment, (0, pad_length), mode='constant')
         if self.transform:
             audio_segment = self.transform(audio_segment)
+        
+        # If required, pad the labels to match the maximum number of speakers.
+        if self.max_num_speakers is not None:
+            labels = pad_labels(labels, self.max_num_speakers)
         
         # Convert to tensors:
         audio_tensor = torch.tensor(audio_segment, dtype=torch.float)
