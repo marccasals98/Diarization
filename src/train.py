@@ -6,7 +6,7 @@ import torch
 import numpy as np
 from torch.utils.data import DataLoader
 from torch import optim
-from eend import EEND_Model
+from eend import BLSTM_EEND
 from torch import nn
 #region logging
 # Logging
@@ -74,7 +74,7 @@ class Trainer:
     def load_network(self):
         logger.info("Loading the network...")
 
-        self.net = EEND_Model(self.params, self.device)
+        self.net = BLSTM_EEND()
 
         # Data Parallelism 
         if torch.cuda.device_count() > 1:
@@ -121,9 +121,6 @@ class Trainer:
         logger.info("Loading the optimizer...")
 
         if self.params.optimizer == 'adam':
-            logger.info(f"self.net.parameters(): {self.net.parameters()}")
-            logger.info(f"self.net.parameters(): {list(self.net.parameters())}")
-            logger.info(f"self.net.parameters(): {list(filter(lambda p: p.requires_grad, self.net.parameters()))}")
             self.optimizer = optim.Adam(
                 filter(lambda p: p.requires_grad, self.net.parameters()),
                 lr=self.params.learning_rate,
@@ -172,8 +169,82 @@ class Trainer:
         del training_dataset
     
     #endregion
+    def eval_and_save_best_model(self):
+
+        if self.step > 0 and self.params.eval_and_save_best_model_every > 0 \
+            and self.step % self.params.eval_and_save_best_model_every == 0:
+
+            logger.info('Evaluating and saving the new best model (if founded)...')
+
+            # Calculate the evaluation metrics
+            self.evaluate()
+
+            # Have we found a better model? (Better in validation metric).
+            if self.validation_eval_metric > self.best_model_validation_eval_metric:
+
+                logger.info('We found a better model!')
+
+                # Update best model evaluation metrics
+                self.best_model_train_loss = self.train_loss
+                self.best_model_training_eval_metric = self.training_eval_metric
+                self.best_model_validation_eval_metric = self.validation_eval_metric
+
+                logger.info(f"Best model train loss: {self.best_model_train_loss:.3f}")
+                logger.info(f"Best model train evaluation metric: {self.best_model_training_eval_metric:.3f}")
+                logger.info(f"Best model validation evaluation metric: {self.best_model_validation_eval_metric:.3f}")
+
+                self.save_model() 
+
+                # Since we found and improvement, validations_without_improvement and validations_without_improvement_or_opt_update are reseted.
+                self.validations_without_improvement = 0
+                self.validations_without_improvement_or_opt_update = 0
+            
+            else:
+                # In this case the search didn't improved the model
+                # We are one validation closer to do early stopping
+                self.validations_without_improvement = self.validations_without_improvement + 1
+                self.validations_without_improvement_or_opt_update = self.validations_without_improvement_or_opt_update + 1
+                
+
+            logger.info(f"Consecutive validations without improvement: {self.validations_without_improvement}")
+            logger.info(f"Consecutive validations without improvement or optimizer update: {self.validations_without_improvement_or_opt_update}")
+            logger.info('Evaluating and saving done.')
+            self.info_mem(self.step, logger_level = "DEBUG")
+
     def train_single_epoch(self, epoch):
         logger.info(f"Training epoch {epoch+1} of {self.params.max_epochs}")
+
+        self.net.train()
+        for self.current_batch, batch_data in enumerate(self.training_generator):
+            input, labels = batch_data
+
+            # Assign data to device
+            input, label = input.to(self.device), label.to(self.device)
+
+            if self.current_batch == 0:
+                logger.info(f"input.shape: {input.shape}")
+                logger.info(f"label.shape: {label.shape}")
+            
+            prediction = self.net(input)
+            loss = self.loss_function(prediction, label)
+            self.loss.item()
+
+            # BACKPROPAGATION
+
+            # Zero the gradients
+            self.optimizer.zero_grad()
+
+            # Backward pass: compute gradient of the loss with respect to model parameters
+            self.loss.backward()
+
+            # Update the weights
+            self.optimizer.step()
+
+            self.eval_and_save_best_model()
+
+            # Update best loss
+            if self.train_loss < self.best_train_loss:
+                self.best_train_loss = self.train_loss
 
     def train(self):
         for self.epoch in range(self.params.max_epochs):
