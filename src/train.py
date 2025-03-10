@@ -216,7 +216,7 @@ class Trainer:
 
         self.net.train()
         for self.current_batch, batch_data in enumerate(self.training_generator):
-            input, labels = batch_data
+            input, label = batch_data
 
             # Assign data to device
             input, label = input.to(self.device), label.to(self.device)

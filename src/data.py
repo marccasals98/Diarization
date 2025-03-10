@@ -90,7 +90,6 @@ def pad_labels(labels: np.array, target_num: int) -> np.array:
         np.array: Label matrix padded to shape (num_frames, target_num)
     """
     num_frames, current_num = labels.shape
-    print("current_num:", current_num)
     if current_num < target_num:
         pad_width = ((0, 0), (0, target_num - current_num))
         labels = np.pad(labels, pad_width, mode='constant')

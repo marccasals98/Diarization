@@ -1,5 +1,6 @@
 import torch
-from torch import nn 
+from torch import nn
+import ipdb 
 
 class EEND_Model(nn.Module):
     def __init__(self, params, device) -> None:
@@ -39,8 +40,8 @@ class BLSTM_EEND(nn.Module):
         """
         super(BLSTM_EEND, self).__init__()
 
-        self.bi_lstm = nn.LSTM(in_size, hidden_size, n_layers, batch_first=True, bidirectional=True, dropout=dropout)
-        self.bi_lstm_embed = nn.LSTM(hidden_size, embedding_size, embedding_layers, batch_first=True, bidirectional=True, dropout=dropout)
+        self.bi_lstm = nn.LSTM(hidden_size, hidden_size * 2, n_layers, batch_first=True, bidirectional=True, dropout=dropout)
+        self.bi_lstm_embed = nn.LSTM(in_size, embedding_size, embedding_layers, batch_first=True, bidirectional=True, dropout=dropout)
         self.linear1 = nn.Linear(embedding_size * 2, n_speakers)
         self.linear2 = nn.Linear(embedding_size * 2, embedding_size)
 
@@ -50,7 +51,7 @@ class BLSTM_EEND(nn.Module):
     def forward(self, x, hidden_state = None, activation=None):
         print(f"x.shape: {x.shape}")
         # Unpack hidden states
-        if hidden_state is None:
+        if hidden_state is not None:
             hidden_state_in, cell_state_in, hidden_state_embed_in, cell_state_embed_in = hidden_state
         else:
             hidden_state_in, cell_state_in, hidden_state_embed_in, cell_state_embed_in = None, None, None, None
@@ -81,6 +82,3 @@ class BLSTM_EEND(nn.Module):
 
         # embedding branch
         embed_stack = embed.view(-1, embed.size(1) * embed.size(2))
-
-
-        
