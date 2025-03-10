@@ -93,7 +93,7 @@ def pad_labels(labels: np.array, target_num: int) -> np.array:
     if current_num < target_num:
         pad_width = ((0, 0), (0, target_num - current_num))
         labels = np.pad(labels, pad_width, mode='constant')
-        return labels
+    return labels
 
 class TrainDataset(data.Dataset):
     def __init__(self, 
@@ -218,7 +218,6 @@ class TrainDataset(data.Dataset):
         # If required, pad the labels to match the maximum number of speakers.
         if self.max_num_speakers is not None:
             labels = pad_labels(labels, self.max_num_speakers)
-        
         # Convert to tensors:
         audio_tensor = torch.tensor(audio_segment, dtype=torch.float)
         label_tensor = torch.tensor(labels, dtype=torch.long)
