@@ -53,13 +53,15 @@ class BLSTM_EEND(nn.Module):
         # Unpack hidden states
         if hidden_state is not None:
             hidden_state_in, cell_state_in, hidden_state_embed_in, cell_state_embed_in = hidden_state
+            # forward to LSTM layers
+            embed, hidden_state_embed, cell_state_embed = self.bi_lstm_embed(x,
+                                                                        hidden_state_embed_in, 
+                                                                        cell_state_embed_in)            
         else:
             hidden_state_in, cell_state_in, hidden_state_embed_in, cell_state_embed_in = None, None, None, None
-        
-        # forward to LSTM layers
-        embed, hidden_state_embed, cell_state_embed = self.bi_lstm_embed(x,
-                                                                    hidden_state_embed_in, 
-                                                                    cell_state_embed_in)
+            # forward to LSTM layers
+            embed, hidden_state_embed, cell_state_embed = self.bi_lstm_embed(x)        
+
         print(f"embed.shape: {embed.shape}")
         print(f"hidden_state_embed.shape: {hidden_state_embed.shape}")
         print(f"cell_state_embed.shape: {cell_state_embed.shape}")
