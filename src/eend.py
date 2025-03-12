@@ -17,6 +17,34 @@ class EEND_Model(nn.Module):
         return out
     
 class BLSTM_EEND(nn.Module):
+    """_summary_
+
+    Implementation of the BLSTM-based diarization model described in the paper:
+    "End-to-end Neural Speaker Diarization with Permutation-free Objectives"
+    by Fujita et al. (2019).
+
+    [Paper](https://arxiv.org/abs/1909.05952)
+
+                                                       
+       Output                                          
+         |                                             
+         |                                             
++-----------------+                                    
+| Linear + Sigmoid|          Label (One-hot conversion)
++--------|--------+                      |             
+         |                    +----------|---------+   
+  +------------+              |Deep Clustering Loss|   
+  |    BLSTM   |              +----------|---------+   
+  +------------+                         |             
+         |                 +--------------------------+
+         |-----------------|Linear + Tanh + Normalize |
+  +------------+           +--------------------------+
+  |    BLSTM   |                                       
+  +------|-----+                                       
+         |                                             
+       Audio                                           
+    
+    """
     def __init__(self,
                 n_speakers=20,
                 dropout=0.25,
