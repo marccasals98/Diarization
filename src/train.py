@@ -116,7 +116,7 @@ class Trainer:
 
         logger.info("Network loaded.")
     def load_loss_function(self):
-        ...
+        self.loss_function = ...
     def load_optimizer(self):
         logger.info("Loading the optimizer...")
 

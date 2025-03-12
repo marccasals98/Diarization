@@ -201,6 +201,7 @@ class TrainDataset(data.Dataset):
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: Returns an audio of shape `segment_length * sr` and the labels of shape `(num_frames, num_speakers)`
+            Usually, the code is set to work with segment_length = 5, and Sampling rate = 16000.
         """
         audio_file, start_time, labels = self.segments[index]
         audio, sr = load_audio(audio_file)
