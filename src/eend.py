@@ -1,4 +1,14 @@
+# Copyright 2025 Barcelona Supercomputing Center (author: Marc Casals i Salvador)
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 import torch
+from typing import List, Tuple
 from torch import nn
 import ipdb
 import torch.nn.functional as F 
@@ -25,7 +35,7 @@ class BLSTM_EEND(nn.Module):
 
     [Paper](https://arxiv.org/abs/1909.05952)
 
-                                                       
+
        Output                                          
          |                                             
          |                                             
@@ -46,9 +56,11 @@ class BLSTM_EEND(nn.Module):
     
     """
     def __init__(self,
+                segment_length,
+                frame_length,
                 n_speakers=20,
                 dropout=0.25,
-                in_size=80000, # 513 in the source code
+                in_size=400, # 513 in the source code
                 hidden_size=256,
                 n_layers=1,
                 embedding_layers=1,
@@ -68,7 +80,8 @@ class BLSTM_EEND(nn.Module):
             dc_loss_ratio (float): mixing parameter for DPCL loss
         """
         super(BLSTM_EEND, self).__init__()
-
+        self.segment_length = segment_length
+        self.frame_length = frame_length
         # LSTM for computing embeddings:
         self.bi_lstm_embed = nn.LSTM(input_size=in_size,
                                     hidden_size=hidden_size,
@@ -93,10 +106,23 @@ class BLSTM_EEND(nn.Module):
         self.dc_loss_ratio = dc_loss_ratio
         self.n_speakers = n_speakers
 
-    def forward(self, x, hidden_state = None, activation=None):
+    def forward(self, x:torch.Tensor, hidden_state: torch.Tensor = None, activation=None
+                )->Tuple[Tuple[ torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor, torch.Tensor]:
+        
+        """The forward pass of the model.
+
+        Args:
+            x (torch.Tensor): The input tensor of shape [batch_size, 1, segment_length*sr]
+            hidden_state (torch.Tensor, optional): The hidden state of the model. Defaults to None.
+            activation (_type_, optional): _description_. Defaults to None.
+
+        Returns:
+            Tuple[Tuple[ torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor, torch.Tensor]: _description_
+        """
+
         # x of shape [batch_size, 1, segment_length*sr]
         print(f"x.shape: {x.shape}")
-
+        x = x.view(x.size(0),int(self.segment_length/self.frame_length) , -1)
         # Unpack hidden states
         if hidden_state is not None:
             hidden_state_in, cell_state_in, hidden_state_embed_in, cell_state_embed_in = hidden_state

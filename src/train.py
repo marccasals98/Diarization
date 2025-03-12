@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from torch import optim
 from eend import BLSTM_EEND
 from torch import nn
+from losses import PITLoss
 #region logging
 # Logging
 # -------
@@ -74,7 +75,8 @@ class Trainer:
     def load_network(self):
         logger.info("Loading the network...")
 
-        self.net = BLSTM_EEND()
+        self.net = BLSTM_EEND(self.params.segment_length,
+                            self.params.frame_length)
 
         # Data Parallelism 
         if torch.cuda.device_count() > 1:
@@ -116,7 +118,11 @@ class Trainer:
 
         logger.info("Network loaded.")
     def load_loss_function(self):
-        self.loss_function = ...
+        self.loss_function = PITLoss(
+            n_speakers=self.params.max_num_speakers,
+            detach_attractor_loss=self.params.detach_attractor_loss,
+        )
+        logger.info("Loss function loaded.")
     def load_optimizer(self):
         logger.info("Loading the optimizer...")
 
@@ -225,8 +231,10 @@ class Trainer:
                 logger.info(f"input.shape: {input.shape}")
                 logger.info(f"label.shape: {label.shape}")
             
-            prediction = self.net(input)
-            loss = self.loss_function(prediction, label)
+            _, prediction, embeddings = self.net(input)
+            print(f"prediction.shape: {prediction.shape}")
+            print(f"label.shape: {label.shape}")
+            self.loss = self.loss_function(prediction, label)
             self.loss.item()
 
             # BACKPROPAGATION

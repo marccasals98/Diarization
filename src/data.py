@@ -200,7 +200,7 @@ class TrainDataset(data.Dataset):
             index (int): The index of the sample we want to retrieve.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: Returns an audio of shape `segment_length * sr` and the labels of shape `(num_frames, num_speakers)`
+            Tuple[torch.Tensor, torch.Tensor]: Returns an audio of shape `segment_length * sr` and the labels of shape `(num_frames, num_speakers)`. Another way `(segment_length/frame_length, num_speakers)`.
             Usually, the code is set to work with segment_length = 5, and Sampling rate = 16000.
         """
         audio_file, start_time, labels = self.segments[index]

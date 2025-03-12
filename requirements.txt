@@ -6,3 +6,4 @@ ffmpeg==1.4
 soundfile==0.13.1
 tqdm==4.67.1
 ipdb==0.13.13
+scipy==1.15.2
