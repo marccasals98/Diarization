@@ -90,11 +90,10 @@ def pad_labels(labels: np.array, target_num: int) -> np.array:
         np.array: Label matrix padded to shape (num_frames, target_num)
     """
     num_frames, current_num = labels.shape
-    print("current_num:", current_num)
     if current_num < target_num:
         pad_width = ((0, 0), (0, target_num - current_num))
         labels = np.pad(labels, pad_width, mode='constant')
-        return labels
+    return labels
 
 class TrainDataset(data.Dataset):
     def __init__(self, 
@@ -202,6 +201,7 @@ class TrainDataset(data.Dataset):
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: Returns an audio of shape `segment_length * sr` and the labels of shape `(num_frames, num_speakers)`
+            Usually, the code is set to work with segment_length = 5, and Sampling rate = 16000.
         """
         audio_file, start_time, labels = self.segments[index]
         audio, sr = load_audio(audio_file)
@@ -219,7 +219,6 @@ class TrainDataset(data.Dataset):
         # If required, pad the labels to match the maximum number of speakers.
         if self.max_num_speakers is not None:
             labels = pad_labels(labels, self.max_num_speakers)
-        
         # Convert to tensors:
         audio_tensor = torch.tensor(audio_segment, dtype=torch.float)
         label_tensor = torch.tensor(labels, dtype=torch.long)

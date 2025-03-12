@@ -34,7 +34,7 @@ class ArgsParser:
         self.parser.add_argument(
             '--max_num_speakers',
             type=int,
-            default=None,
+            default=20,
         )
         self.parser.add_argument(
             '--frame_length',
