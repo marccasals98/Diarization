@@ -71,6 +71,10 @@ class ArgsParser:
             type=int,
             default=5,
         )
-    
+        self.parser.add_argument(
+            '--detach_attractor_loss',
+            type=bool,
+            default=False,
+        )
         return self.parser.parse_args()
     
