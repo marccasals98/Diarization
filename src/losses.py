@@ -10,6 +10,7 @@ from typing import List, Tuple
 from torch.nn.functional import logsigmoid
 from torch.nn.modules.loss import _Loss
 from scipy.optimize import linear_sum_assignment
+import ipdb
 
 
 
@@ -34,6 +35,7 @@ def pit_loss_multispk(logits: List[torch.Tensor],
     Returns:
         torch.Tensor: _description_
     """
+    target = target.float()
     if detach_attractor_loss:
         # -1s for speakers that do not have valid attractor
         # HACK Is this shape correct? This is the batch size.
@@ -41,7 +43,11 @@ def pit_loss_multispk(logits: List[torch.Tensor],
             target[i, :, n_speakers[i]:] = -1 * torch.ones(target.shape[1], target.shape[2] - n_speakers[i])
     
     logits_t = logits.detach().transpose(1, 2)
-    cost_matrices = -logsigmoid(logits_t).bmm - logsigmoid(-logits_t).bmm(1-target)
+    print(f"logits_t type: {type(logits_t)}")
+    print(f"target type: {type(target)}")
+    print(f"logits_t: {logits_t}")
+    print(f"target: {target}")
+    cost_matrices = -logsigmoid(logits_t).bmm(target) - logsigmoid(-logits_t).bmm(1-target)
 
     max_n_speakers = max(n_speakers)
 
@@ -85,7 +91,7 @@ class PITLoss(_Loss):
         self.n_speakers = n_speakers
         self.detach_attractor_loss = detach_attractor_loss
 
-    def forward(self, input: torch.Tensor, target: torch.Tensor)->torch.Tensor:
+    def forward(self, input: torch.Tensor, target: torch.Tensor, n_speakers: np.ndarray)->torch.Tensor:
         """Implements the PIT Loss for multi-speaker diarization. 
 
         Args:
@@ -95,4 +101,4 @@ class PITLoss(_Loss):
         Returns:
             torch.Tensor: _description_
         """
-        return pit_loss_multispk(input, target, self.n_speakers, self.detach_attractor_loss)
+        return pit_loss_multispk(input, target, n_speakers, self.detach_attractor_loss)

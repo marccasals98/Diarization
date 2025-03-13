@@ -33,6 +33,7 @@ class Trainer:
     def __init__(self, params)->None:
         self.params = params
         print(self.params)
+        self.init_training_variables()
         self.set_device()
         self.set_random_seed()
         self.load_training_data()
@@ -42,6 +43,11 @@ class Trainer:
         self.main()
 
     #region initialization
+    def init_training_variables(self):
+        self.step = 0
+        self.epoch = 0
+        self.train_loss = 0
+        self.best_train_loss = np.inf
     def set_device(self):
         '''Set torch device.'''
         logger.info('Setting device...')
@@ -241,7 +247,8 @@ class Trainer:
 
             # Assign data to device
             input, label = input.to(self.device), label.to(self.device)
-
+            n_speakers = np.asarray([max(torch.where(t.sum(0) != 0)[0]) + 1
+                                    if t.sum() > 0 else 0 for t in label])
             if self.current_batch == 0:
                 logger.info(f"input.shape: {input.shape}")
                 logger.info(f"label.shape: {label.shape}")
@@ -249,8 +256,8 @@ class Trainer:
             _, prediction, embeddings = self.net(input)
             print(f"prediction.shape: {prediction.shape}")
             print(f"label.shape: {label.shape}")
-            self.loss = self.loss_function(prediction, label)
-            self.loss.item()
+            self.loss = self.loss_function(prediction, label, n_speakers)
+            self.train_loss = self.loss.item()
 
             # BACKPROPAGATION
 
@@ -268,6 +275,8 @@ class Trainer:
             # Update best loss
             if self.train_loss < self.best_train_loss:
                 self.best_train_loss = self.train_loss
+        
+        self.step += 1
 
     def train(self):
         for self.epoch in range(self.params.max_epochs):
