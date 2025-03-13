@@ -22,6 +22,11 @@ class ArgsParser:
             default=5,
         )
         self.parser.add_argument(
+            '--feature_stride',
+            type=float,
+            default=0.01,
+        )
+        self.parser.add_argument(
             '--batch_size',
             type=int,
             default=32,
@@ -80,6 +85,11 @@ class ArgsParser:
             '--feature_extractor_output_vectors_dimension',
             type=int,
             default=150,
+        )
+        self.parser.add_argument(
+            '--n_fft',
+            type=int,
+            default=2048,
         )
         self.parser.add_argument(
             '--sample_rate',

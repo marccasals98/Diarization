@@ -155,12 +155,23 @@ class Trainer:
             self.load_checkpoint_optimizer()
         logger.info(f"Optimizer {self.params.optimizer} loaded!")
         
+    def compute_number_of_frames(self):
+        segment_samples = int(self.params.segment_length * self.params.sample_rate)
+        if self.params.feature_extractor == "SpectrogramExtractor":
+            n_frames = int(segment_samples - self.params.n_fft) // int(self.params.sample_rate * self.params.feature_stride) + 1
+        else:
+            logger.info("Feature extractor not implemented.")
+        return n_frames    
     def load_training_data(self):
         """Loads the training data and generate the DataLoader.
         """
+        n_frames = self.compute_number_of_frames()
+
         training_dataset = TrainDataset(
             audio_files=self.params.audio_path,
             rttm_paths=self.params.rttm_path,
+            feature_stride=self.params.feature_stride,
+            n_frames=n_frames,
             segment_length=self.params.segment_length,
             allow_overlap=self.params.allow_overlap,
             max_num_speakers=self.params.max_num_speakers,
