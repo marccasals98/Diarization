@@ -40,7 +40,6 @@ class SpectrogramExtractor(nn.Module):
     def init_feature_extractor(self, sample_rate, feature_extractor_output_vectors_dimension):
         # Implement your feature extractor initialization code here
 
-        # TODO: Ask Javier about these magic things.
         self.feature_extractor = torchaudio.transforms.MelSpectrogram(
             n_fft = 2048,
             win_length = int(sample_rate * 0.025),

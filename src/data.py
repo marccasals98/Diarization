@@ -98,7 +98,9 @@ def pad_labels(labels: np.array, target_num: int) -> np.array:
 class TrainDataset(data.Dataset):
     def __init__(self, 
                 audio_files: str,
-                rttm_paths: str, 
+                rttm_paths: str,
+                feature_stride: float, 
+                n_frames: int,
                 segment_length: int, 
                 allow_overlap: bool, 
                 max_num_speakers: int,
@@ -107,6 +109,8 @@ class TrainDataset(data.Dataset):
         
         self.audio_files = audio_files
         self.rttm_paths = rttm_paths
+        self.feature_stride = feature_stride
+        self.n_frames = n_frames
         self.segment_length = segment_length
         self.allow_overlap = allow_overlap
         self.max_num_speakers = max_num_speakers # HACK implement maximum number of speakers
@@ -140,7 +144,7 @@ class TrainDataset(data.Dataset):
                 labels = self.compute_labels_for_segment(turns, start / sr, (start + seg_samples) / sr, speakers)
                 self.segments.append((audio_file, start / sr, labels))
 
-    def compute_labels_for_segment(self, turns: list, start: float, end: float, speakers: list)->np.array:
+    def compute_labels_for_segment(self, turns: list, segment_start: float, segment_end: float, speakers: list)->np.array:
         """This function converts the speaker turn information from your RTTM
         file into a frame-level label vector for a fixed-length audio segment.
 
@@ -153,8 +157,6 @@ class TrainDataset(data.Dataset):
             np.array: the frame-level label vector that comprehends the speaker turns
         """
 
-        # calculate the number of frames in the segment
-        n_frames = int(self.segment_length / self.frame_length)
 
         # Create a mapping of speaker names to indices
         num_speakers = len(speakers)
@@ -162,27 +164,28 @@ class TrainDataset(data.Dataset):
 
         # Initialize the label vector
         if self.allow_overlap == True:
-            label_vector = np.zeros((n_frames, num_speakers), dtype=int)
+            label_matrix = np.zeros((self.n_frames, num_speakers), dtype=int)
         else:
-            label_vector = np.zeros(n_frames, dtype=int)
+            label_matrix = np.zeros(self.n_frames, dtype=int)
 
         # Iterate over the speaker turns
         for start_time, duration, speaker in turns:
-            end_time = start_time + duration
+            end_time_turn = start_time + duration
             # We need to check if the speaker turn is within the segment
-            if end_time > start and start_time < end:
+            if end_time_turn > segment_start and start_time < segment_end:
 
                 # Convert the start and end times to frame indices
-                start_frame = max(0, int((start_time - start) * self.frame_length))
-                end_frame = min(n_frames, int((end_time - start) * self.frame_length))
+                # Since feature_stride is in seconds, the number of frames from segment_start is:
+                start_frame = max(0, int((start_time - segment_start) / self.feature_stride))
+                end_frame = min(self.n_frames, int((end_time_turn - segment_start) / self.feature_stride))
 
                 # Set the label vector values for the speaker turn
                 if self.allow_overlap == True:
-                    label_vector[start_frame:end_frame, speaker_indices[speaker]] = 1
+                    label_matrix[start_frame:end_frame, speaker_indices[speaker]] = 1
                 else:
-                    label_vector[start_frame:end_frame] = speaker
+                    label_matrix[start_frame:end_frame] = speaker
 
-        return label_vector
+        return label_matrix
     
     def __len__(self):
         return len(self.segments)
