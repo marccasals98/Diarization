@@ -198,7 +198,7 @@ class BLSTM_EEND(nn.Module):
         x = self.feature_extractor_norm_layer(x)
         # Features are of shape [batch_size, time, mel_bands].
 
-        print(f"x.shape after feature extraction: {x.shape}")
+        print(f"x.shape afnter feature extraction: {x.shape}")
 
         # Unpack hidden states
         if hidden_state is not None:
@@ -220,21 +220,23 @@ class BLSTM_EEND(nn.Module):
         
         # main branch
         # from [32,1,512] -> [32, 512]
-        y_stack = y.view(-1, y.size(1) * y.size(2))
-        y = self.linear1(y_stack)
+        Batch, Time, Dimension = y.size()
+        y_stack = y.contiguous().view(-1, Dimension)
+        y_out = self.linear1(y_stack)
+        y_out = y_out.view(Batch, Time, -1)
         
         if activation is not None:
-            y = activation(y)
+            y_out = activation(y_out)
         # what is this
         # irels = [xi.shape[1] for xi in x]
         # y = y.split(irels)
 
         # embedding branch
-        embed_stack = embed.view(-1, embed.size(1) * embed.size(2))
-
+        Batch, Time, Dimension = embed.size()
+        embed_stack = embed.contiguous().view(-1, Dimension)
         embed_out = torch.tanh(self.linear2(embed_stack))
-
         embed_out_normalized = F.normalize(embed_out, p=2, dim=1)
+        embed_out_normalized = embed_out_normalized.view(Batch, Time, -1)
 
-        return ((hidden_state, cell_state, hidden_state_embed, cell_state_embed),  y, embed_out_normalized)
+        return ((hidden_state, cell_state, hidden_state_embed, cell_state_embed),  y_out, embed_out_normalized)
 
