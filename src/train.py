@@ -76,7 +76,11 @@ class Trainer:
         logger.info("Loading the network...")
 
         self.net = BLSTM_EEND(self.params.segment_length,
-                            self.params.frame_length)
+                            self.params.frame_length,
+                            self.params.feature_extractor,
+                            self.params.sample_rate,
+                            self.params.feature_extractor_output_vectors_dimension,
+                            )
 
         # Data Parallelism 
         if torch.cuda.device_count() > 1:

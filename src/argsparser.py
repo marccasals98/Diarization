@@ -57,6 +57,11 @@ class ArgsParser:
             default=0.001,
         )
         self.parser.add_argument(
+            '--feature_extractor',
+            type=str,
+            default="SpectrogramExtractor",
+        )
+        self.parser.add_argument(
             '--weight_decay',
             type=float,
             default=0.01,
@@ -70,6 +75,16 @@ class ArgsParser:
             '--max_epochs',
             type=int,
             default=5,
+        )
+        self.parser.add_argument(
+            '--feature_extractor_output_vectors_dimension',
+            type=int,
+            default=150,
+        )
+        self.parser.add_argument(
+            '--sample_rate',
+            type=int,
+            default=16000,
         )
         self.parser.add_argument(
             '--detach_attractor_loss',
