@@ -11,7 +11,27 @@ import torch
 from typing import List, Tuple
 from torch import nn
 import ipdb
+import logging
+from feature_extractor import SpectrogramExtractor
 import torch.nn.functional as F 
+
+# Set logging config
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger_formatter = logging.Formatter(
+    fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt = '%y-%m-%d %H:%M:%S',
+    )
+
+# Set a logging stream handler
+logger_stream_handler = logging.StreamHandler()
+logger_stream_handler.setLevel(logging.INFO)
+logger_stream_handler.setFormatter(logger_formatter)
+
+# Add handlers
+logger.addHandler(logger_stream_handler)
+#endregion
 
 class EEND_Model(nn.Module):
     def __init__(self, params, device) -> None:
@@ -58,6 +78,9 @@ class BLSTM_EEND(nn.Module):
     def __init__(self,
                 segment_length,
                 frame_length,
+                feature_extractor,
+                sample_rate,
+                feature_extractor_output_vectors_dimension,
                 n_speakers=20,
                 dropout=0.25,
                 in_size=400, # 513 in the source code
@@ -82,8 +105,11 @@ class BLSTM_EEND(nn.Module):
         super(BLSTM_EEND, self).__init__()
         self.segment_length = segment_length
         self.frame_length = frame_length
+        self.n_speakers = n_speakers
+
+        self.init_audio_feature_extractor(feature_extractor, sample_rate, feature_extractor_output_vectors_dimension)
         # LSTM for computing embeddings:
-        self.bi_lstm_embed = nn.LSTM(input_size=in_size,
+        self.bi_lstm_embed = nn.LSTM(input_size=feature_extractor_output_vectors_dimension,
                                     hidden_size=hidden_size,
                                     num_layers= embedding_layers,
                                     batch_first=True,  
@@ -106,6 +132,48 @@ class BLSTM_EEND(nn.Module):
         self.dc_loss_ratio = dc_loss_ratio
         self.n_speakers = n_speakers
 
+    def init_audio_feature_extractor(self, feature_extractor, sample_rate, feature_extractor_output_vectors_dimension):
+        """
+        This method initializes the audio feature extractor.
+
+        There are two options:
+        * SpectrogramExtractor
+        * WavLMExtractor
+
+        After this, it will be applied the Layer Normalization.
+
+        .. math::
+                y = \frac{x - \mathrm{E}[x]}{ \sqrt{\mathrm{Var}[x] + \epsilon}} * \gamma + \beta
+
+            The mean and standard-deviation are calculated over the last `D` dimensions, where `D`
+            is the dimension of :attr:`normalized_shape`. For example, if :attr:`normalized_shape`
+            is ``(3, 5)`` (a 2-dimensional shape), the mean and standard-deviation are computed over
+            the last 2 dimensions of the input (i.e. ``input.mean((-2, -1))``).
+            :math:`\gamma` and :math:`\beta` are learnable affine transform parameters of
+            :attr:`normalized_shape` if :attr:`elementwise_affine` is ``True``.
+            The standard-deviation is calculated via the biased estimator, equivalent to
+            `torch.var(input, unbiased=False)`.
+
+        """
+        if feature_extractor == 'SpectrogramExtractor':
+            self.feature_extractor = SpectrogramExtractor(sample_rate,
+                                                        feature_extractor_output_vectors_dimension)
+        elif feature_extractor == 'WavLMExtractor':
+            # TODO: Implement WavLMExtractor
+            ...
+        else:
+            raise ValueError(f"Audio feature extractor {feature_extractor} not found")
+        
+        # Freeze all wavLM parameter except layers weights
+        for name, parameter in self.feature_extractor.named_parameters():          
+            if name != "layer_weights":
+                logger.info(f"Setting {name} to requires_grad = False")
+                parameter.requires_grad = False
+        
+        logger.debug(f"Feature extractor output vectors dimension: {feature_extractor_output_vectors_dimension}. Check if it suits the LayerNorm dimensions.")
+        self.feature_extractor_norm_layer = nn.LayerNorm(feature_extractor_output_vectors_dimension)
+
+
     def forward(self, x:torch.Tensor, hidden_state: torch.Tensor = None, activation=None
                 )->Tuple[Tuple[ torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor, torch.Tensor]:
         
@@ -120,9 +188,18 @@ class BLSTM_EEND(nn.Module):
             Tuple[Tuple[ torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor, torch.Tensor]: _description_
         """
 
-        # x of shape [batch_size, 1, segment_length*sr]
+        # x of shape [batch_size, 1, segment_length*sr] -> [batch_size, segment_length*sr]
+        x = x.squeeze(1)
         print(f"x.shape: {x.shape}")
-        x = x.view(x.size(0),int(self.segment_length/self.frame_length) , -1)
+        # x = x.view(x.size(0),int(self.segment_length/self.frame_length) , -1)
+
+        # Extract Spectrogram Features from Audio. And Normalize them.
+        x = self.feature_extractor(x)
+        x = self.feature_extractor_norm_layer(x)
+        # Features are of shape [batch_size, time, mel_bands].
+
+        print(f"x.shape afnter feature extraction: {x.shape}")
+
         # Unpack hidden states
         if hidden_state is not None:
             hidden_state_in, cell_state_in, hidden_state_embed_in, cell_state_embed_in = hidden_state
@@ -143,21 +220,23 @@ class BLSTM_EEND(nn.Module):
         
         # main branch
         # from [32,1,512] -> [32, 512]
-        y_stack = y.view(-1, y.size(1) * y.size(2))
-        y = self.linear1(y_stack)
+        Batch, Time, Dimension = y.size()
+        y_stack = y.contiguous().view(-1, Dimension)
+        y_out = self.linear1(y_stack)
+        y_out = y_out.view(Batch, Time, -1)
         
         if activation is not None:
-            y = activation(y)
+            y_out = activation(y_out)
         # what is this
         # irels = [xi.shape[1] for xi in x]
         # y = y.split(irels)
 
         # embedding branch
-        embed_stack = embed.view(-1, embed.size(1) * embed.size(2))
-
+        Batch, Time, Dimension = embed.size()
+        embed_stack = embed.contiguous().view(-1, Dimension)
         embed_out = torch.tanh(self.linear2(embed_stack))
-
         embed_out_normalized = F.normalize(embed_out, p=2, dim=1)
+        embed_out_normalized = embed_out_normalized.view(Batch, Time, -1)
 
-        return ((hidden_state, cell_state, hidden_state_embed, cell_state_embed),  y, embed_out_normalized)
+        return ((hidden_state, cell_state, hidden_state_embed, cell_state_embed),  y_out, embed_out_normalized)
 
