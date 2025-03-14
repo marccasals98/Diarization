@@ -43,10 +43,7 @@ def pit_loss_multispk(logits: List[torch.Tensor],
             target[i, :, n_speakers[i]:] = -1 * torch.ones(target.shape[1], target.shape[2] - n_speakers[i])
     
     logits_t = logits.detach().transpose(1, 2)
-    print(f"logits_t type: {type(logits_t)}")
-    print(f"target type: {type(target)}")
-    print(f"logits_t: {logits_t}")
-    print(f"target: {target}")
+
     cost_matrices = -logsigmoid(logits_t).bmm(target) - logsigmoid(-logits_t).bmm(1-target)
 
     max_n_speakers = max(n_speakers)

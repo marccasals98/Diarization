@@ -32,6 +32,16 @@ class ArgsParser:
             default=32,
         )
         self.parser.add_argument(
+            '--print_training_info_every',
+            type=int,
+            default=100,
+        )
+        self.parser.add_argument(
+            '--eval_and_save_best_model_every',
+            type=int,
+            default=1000,
+        )
+        self.parser.add_argument(
             '--allow_overlap',
             type=bool,
             default=True,
@@ -79,7 +89,7 @@ class ArgsParser:
         self.parser.add_argument(
             '--max_epochs',
             type=int,
-            default=5,
+            default=1,
         )
         self.parser.add_argument(
             '--feature_extractor_output_vectors_dimension',
