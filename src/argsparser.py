@@ -39,7 +39,7 @@ class ArgsParser:
         self.parser.add_argument(
             '--eval_and_save_best_model_every',
             type=int,
-            default=1000,
+            default=5,
         )
         self.parser.add_argument(
             '--allow_overlap',

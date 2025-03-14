@@ -9,7 +9,7 @@ from torch import optim
 from eend import BLSTM_EEND
 from torch import nn
 from losses import PITLoss
-from tqdm import tqdm
+
 
 # region logging
 # Logging
@@ -205,6 +205,7 @@ class Trainer:
             "num_workers": self.params.num_workers,
         }
         self.training_generator = DataLoader(training_dataset, **data_loader_parameters)
+        self.total_batches = len(self.training_generator)
         logger.info("Training data loaded.")
         del training_dataset
 
@@ -214,10 +215,11 @@ class Trainer:
             and self.step % self.params.print_training_info_every == 0:
 
             info_to_print = f"Epoch {self.epoch} of {self.params.max_epochs}, "
-            info_to_print = info_to_print + f"batch {self.batch_number} of {self.total_batches}, "
+            info_to_print = info_to_print + f"batch {self.current_batch} of {self.total_batches}, "
             info_to_print = info_to_print + f"step {self.step}, "
             info_to_print = info_to_print + f"Loss {self.train_loss:.3f}, "
-            info_to_print = info_to_print + f"Best validation score: {self.best_model_validation_eval_metric:.3f}..."
+            info_to_print = info_to_print + f"Best training score:{self.best_model_training_eval_metric:.3f},"
+            # info_to_print = info_to_print + f"Best validation score: {self.best_model_validation_eval_metric:.3f}"
 
             logger.info(info_to_print)
 
@@ -283,7 +285,7 @@ class Trainer:
         logger.info(f"Training epoch {epoch+1} of {self.params.max_epochs}")
 
         self.net.train()
-        for self.current_batch, batch_data in tqdm(enumerate(self.training_generator), total=len(self.training_generator)):
+        for self.current_batch, batch_data in enumerate(self.training_generator):
             input, label = batch_data
 
             # Assign data to device
@@ -316,13 +318,20 @@ class Trainer:
 
             self.eval_and_save_best_model()
 
-            #self.check_print_training_info()
+            self.check_print_training_info()
 
             # Update best loss
             if self.train_loss < self.best_train_loss:
                 self.best_train_loss = self.train_loss
 
         self.step += 1
+
+        logger.info(f"-"*50)
+        logger.info(f"Epoch {epoch} finished with:")
+        logger.info(f"Loss {self.train_loss:.3f}")
+        logger.info(f"Best model training evaluation metric: {self.best_model_training_eval_metric:.3f}")
+        logger.info(f"Best model validation evaluation metric: {self.best_model_validation_eval_metric:.3f}")
+        logger.info(f"-"*50)
 
     def train(self):
         for self.epoch in range(self.params.max_epochs):
