@@ -190,7 +190,6 @@ class BLSTM_EEND(nn.Module):
 
         # x of shape [batch_size, 1, segment_length*sr] -> [batch_size, segment_length*sr]
         x = x.squeeze(1)
-        print(f"x.shape: {x.shape}")
         # x = x.view(x.size(0),int(self.segment_length/self.frame_length) , -1)
 
         # Extract Spectrogram Features from Audio. And Normalize them.
@@ -198,7 +197,6 @@ class BLSTM_EEND(nn.Module):
         x = self.feature_extractor_norm_layer(x)
         # Features are of shape [batch_size, time, mel_bands].
 
-        print(f"x.shape afnter feature extraction: {x.shape}")
 
         # Unpack hidden states
         if hidden_state is not None:
