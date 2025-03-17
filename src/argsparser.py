@@ -7,15 +7,25 @@ class ArgsParser:
     
     def parse_args(self):
         self.parser.add_argument(
-            '--audio_path',
+            '--audio_path_train',
             type=str,
             default='/gpfs/projects/bsc88/speech/data/raw_data/diarization/voxconverse/audio/dev/audio',
         )
         self.parser.add_argument(
-            '--rttm_path',
+            '--rttm_path_train',
             type=str,
             default="/gpfs/projects/bsc88/speech/data/raw_data/diarization/voxconverse/dev",
         )
+        self.parser.add_argument(
+            '--audio_path_validation',
+            type=str,
+            default='/gpfs/projects/bsc88/speech/data/raw_data/diarization/voxconverse/audio/voxconverse_test_wav',
+        )
+        self.parser.add_argument(
+            '--rttm_path_validation',
+            type=str,
+            default="/gpfs/projects/bsc88/speech/data/raw_data/diarization/voxconverse/test",
+        )        
         self.parser.add_argument(
             '--segment_length',
             type=int,
@@ -34,12 +44,22 @@ class ArgsParser:
         self.parser.add_argument(
             '--print_training_info_every',
             type=int,
-            default=100,
+            default=10,
         )
         self.parser.add_argument(
             '--eval_and_save_best_model_every',
             type=int,
             default=5,
+        )
+        self.parser.add_argument(
+            '--save_model_path',
+            type=str,
+            default='/gpfs/projects/bsc88/speech/speaker_recognition/outputs/diarization/models',
+        )
+        self.parser.add_argument(
+            '--save_model_name',
+            type=str,
+            default='debug_model',
         )
         self.parser.add_argument(
             '--allow_overlap',
@@ -49,8 +69,13 @@ class ArgsParser:
         self.parser.add_argument(
             '--max_num_speakers',
             type=int,
-            default=20,
+            default=21,
         )
+        self.parser.add_argument(
+            '--max_num_speakers_validation',
+            type=int,
+            default=21,
+        )        
         self.parser.add_argument(
             '--frame_length',
             type=float,
@@ -111,5 +136,43 @@ class ArgsParser:
             type=bool,
             default=False,
         )
+        self.parser.add_argument(
+            '--dropout',
+            type=float,
+            default=0.25,
+        )
+        self.parser.add_argument(
+            '--hidden_size',
+            type=int,
+            default=256,
+        )
+        self.parser.add_argument(
+            '--n_layers',
+            type=int,
+            default=1,
+        )
+        self.parser.add_argument(
+            '--embedding_layers',
+            type=int,
+            default=1,
+        )
+        self.parser.add_argument(
+            '--embedding_size',
+            type=int,
+            default=20,
+        )
+        self.parser.add_argument(
+            '--dc_loss_ratio',
+            type=float,
+            default=0.5,
+        )
+        self.parser.add_argument(
+            '--early_stopping', 
+            type = int, 
+            default = 25,
+            help = "Training is stopped if there are early_stopping consectuive validations without improvement. \
+                Set to 0 if you don't want to execute this utility.",
+        )
+
         return self.parser.parse_args()
     
