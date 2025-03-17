@@ -83,12 +83,12 @@ class BLSTM_EEND(nn.Module):
                 feature_extractor_output_vectors_dimension,
                 n_speakers=20,
                 dropout=0.25,
-                in_size=400, # 513 in the source code
                 hidden_size=256,
                 n_layers=1,
                 embedding_layers=1,
                 embedding_size=20,
                 dc_loss_ratio=0.5,
+                n_fft=2048,
                 ):
         """ BLSTM-based diarization model.
 

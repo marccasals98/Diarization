@@ -223,6 +223,6 @@ class TrainDataset(data.Dataset):
         if self.max_num_speakers is not None:
             labels = pad_labels(labels, self.max_num_speakers)
         # Convert to tensors:
-        audio_tensor = torch.tensor(audio_segment, dtype=torch.float)
+        audio_tensor = audio_segment.clone().detach().float()
         label_tensor = torch.tensor(labels, dtype=torch.long)
         return audio_tensor, label_tensor
