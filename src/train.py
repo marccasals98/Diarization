@@ -12,7 +12,7 @@ from losses import PITLoss
 import datetime
 import os
 from tools import get_memory_info
-
+from metrics import compute_der_batch
 
 # region logging
 # Logging
@@ -208,28 +208,29 @@ class Trainer:
         if self.params.load_checkpoint == True:
             self.load_checkpoint_optimizer()
         logger.info(f"Optimizer {self.params.optimizer} loaded!")
-
+ 
     def compute_number_of_frames(self):
         segment_samples = int(self.params.segment_length * self.params.sample_rate)
         if self.params.feature_extractor == "SpectrogramExtractor":
-            n_frames = (
+
+            num_frames = (
                 int(segment_samples - self.params.n_fft)
                 // int(self.params.sample_rate * self.params.feature_stride)
                 + 1
             )
         else:
             logger.info("Feature extractor not implemented.")
-        return n_frames
+        return num_frames
 
     def load_training_data(self):
         """Loads the training data and generate the DataLoader."""
-        n_frames = self.compute_number_of_frames()
-
+        num_frames = self.compute_number_of_frames()
+        
         training_dataset = TrainDataset(
             audio_files=self.params.audio_path_train,
             rttm_paths=self.params.rttm_path_train,
             feature_stride=self.params.feature_stride,
-            n_frames=n_frames,
+            n_frames=num_frames,
             segment_length=self.params.segment_length,
             allow_overlap=self.params.allow_overlap,
             max_num_speakers=self.params.max_num_speakers,
@@ -409,7 +410,7 @@ class Trainer:
         logger.info(f"-"*50)
 
 
-
+    #region Evaluation&Saving
     def evaluate_training(self):
         logger.info("Evaluating training data...")
         self.net.eval()
@@ -436,8 +437,10 @@ class Trainer:
                     self.best_train_loss = self.train_loss
     def evaluate_validation(self):
         logger.info("Evaliating validation data...")
-        self.net.eval()
         with torch.no_grad():
+            self.net.eval()
+            final_predictions, final_labels = torch.tensor([]).to("cpu"), torch.tensor([]).to("cpu")
+
             for self.current_batch, batch_data in enumerate(self.validation_generator):
                 input, label = batch_data
 
@@ -454,13 +457,23 @@ class Trainer:
 
                 self.loss = self.loss_function(prediction, label, n_speakers)
                 self.validation_loss = self.loss.item()
-
+                
+                prediction = prediction.to("cpu")
+                label = label.to("cpu")
+              
 
                 # Update best loss
                 if self.validation_loss < self.best_validation_loss:
                     self.best_validation_loss = self.validation_loss
                     self.best_model_validation_eval_metric = self.validation_eval_metric
                     self.best_model_training_eval_metric = self.training_eval_metric
+
+                # Compute DER
+                label = label.squeeze()
+                prediction = prediction.squeeze()
+                ders, avg_der = compute_der_batch(label, prediction, self.params.frame_length)
+                logger.info(f"DER: {avg_der}")
+
     def evaluate(self):
         self.evaluate_training()
         self.evaluate_validation()
@@ -539,6 +552,7 @@ class Trainer:
         del checkpoint
 
         logger.info(f"Training and model information saved.")
+    #endregion
 
     def train(self):
         for self.epoch in range(self.params.max_epochs):
