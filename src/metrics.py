@@ -2,16 +2,23 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 from pyannote.core import Annotation, Segment
 from pyannote.metrics.diarization import DiarizationErrorRate
+from typing import List, Tuple
+import torch
 
 
-def compute_der(reference_matrix, hypothesis_matrix, frame_duration):
-    """
-    Compute the Diarization Error Rate (DER) between a reference and hypothesis diarization.
 
-    Parameters:
-        reference_matrix (array-like): Binary matrix of shape (N_ref_speakers, T) for ground truth.
-        hypothesis_matrix (array-like): Binary matrix of shape (N_hyp_speakers, T) for prediction.
+def compute_der(reference_matrix: np.ndarray,
+                hypothesis_matrix: np.ndarray, 
+                frame_duration: float)->float:
+    """Compute the Diarization Error Rate (DER) between a reference and hypothesis diarization.
+
+    Args:
+        reference_matrix (np.ndarray): Binary matrix of shape (N_ref_speakers, T) for ground truth.
+        hypothesis_matrix (np.ndarray): Binary matrix of shape (N_hyp_speakers, T) for prediction.
         frame_duration (float): Duration of each time frame (in seconds).
+
+    Raises:
+        ValueError: Reference and hypothesis must have the same number of frames
 
     Returns:
         float: Diarization Error Rate (fraction of time that is diarization error).
@@ -103,20 +110,23 @@ def compute_der(reference_matrix, hypothesis_matrix, frame_duration):
     return der_value
 
 
-def compute_der_batch(reference_batch, hypothesis_batch, frame_duration):
-    """
-    Compute DER for a batch of diarization examples.
+def compute_der_batch(reference_batch: torch.Tensor, 
+                    hypothesis_batch: torch.Tensor, 
+                    frame_duration: float)->Tuple[List[float], float]:
+    """Compute DER for a batch of diarization examples.
 
-    Parameters:
-        reference_batch (array-like): Binary matrices with shape
-                                      (batch_size, num_ref_speakers, num_frames).
-        hypothesis_batch (array-like): Binary matrices with shape
-                                       (batch_size, num_hyp_speakers, num_frames).
+    Args:
+        reference_batch (torch.Tensor): Binary matrices with shape
+                                        (batch_size, num_ref_speakers, num_frames).
+        hypothesis_batch (torch.Tensor): Binary matrices with shape
+                                        (batch_size, num_hyp_speakers, num_frames).
         frame_duration (float): Duration (in seconds) of each time frame.
 
+    Raises:
+        ValueError: Batch size mismatch between reference and hypothesis
+
     Returns:
-        list: DER values for each sample in the batch.
-              You can also compute an average if desired.
+        Tuple[List[float], float]: DER values for each example in the batch and average DER.
     """
     reference_batch = np.array(reference_batch)
     hypothesis_batch = np.array(hypothesis_batch)
