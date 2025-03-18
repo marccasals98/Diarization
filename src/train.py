@@ -54,15 +54,15 @@ class Trainer:
     def init_training_variables(self):
         self.step = 0
         self.epoch = 0
-        self.train_loss = 0
+        self.train_loss = np.inf
         self.best_train_loss = np.inf
         self.best_validation_loss = np.inf
-        self.validation_eval_metric = 0.0
-        self.training_eval_metric = 0.0
-        self.best_model_validation_eval_metric = 0.0
-        self.best_model_training_eval_metric = 0.0
-        self.validations_without_improvement = 0.0
-        self.validations_without_improvement_or_opt_update = 0.0
+        self.validation_eval_metric = np.inf
+        self.training_eval_metric = np.inf
+        self.best_model_validation_eval_metric = np.inf
+        self.best_model_training_eval_metric = np.inf
+        self.validations_without_improvement = 0
+        self.validations_without_improvement_or_opt_update = 0
         self.early_stopping_flag = False
 
     def set_device(self):
@@ -209,7 +209,12 @@ class Trainer:
             self.load_checkpoint_optimizer()
         logger.info(f"Optimizer {self.params.optimizer} loaded!")
  
-    def compute_number_of_frames(self):
+    def compute_number_of_frames(self)->int:
+        """Computes the number of frames that the feature extractor will output.
+
+        Returns:
+            int: number of frames output
+        """
         segment_samples = int(self.params.segment_length * self.params.sample_rate)
         if self.params.feature_extractor == "SpectrogramExtractor":
 
@@ -277,7 +282,7 @@ class Trainer:
         if self.step > 0 and self.params.print_training_info_every > 0 \
             and self.step % self.params.print_training_info_every == 0:
 
-            info_to_print = f"Epoch {self.epoch} of {self.params.max_epochs}, "
+            info_to_print = f"training epoch {self.epoch} of {self.params.max_epochs}, "
             info_to_print = info_to_print + f"batch {self.current_batch} of {self.total_batches}, "
             info_to_print = info_to_print + f"step {self.step}, "
             info_to_print = info_to_print + f"Loss {self.train_loss:.3f}, "
@@ -313,7 +318,7 @@ class Trainer:
             self.evaluate()
 
             # Have we found a better model? (Better in validation metric).
-            if self.validation_eval_metric > self.best_model_validation_eval_metric:
+            if self.validation_eval_metric < self.best_model_validation_eval_metric:
 
                 logger.info("We found a better model!")
 
@@ -400,6 +405,9 @@ class Trainer:
             if self.train_loss < self.best_train_loss:
                 self.best_train_loss = self.train_loss
 
+            if self.early_stopping_flag == True:
+                logger.info("Early stopping condition met.")
+                break
             self.step += 1
 
         logger.info(f"-"*50)
@@ -411,6 +419,17 @@ class Trainer:
 
 
     #region Evaluation&Saving
+    def apply_threshold_to_logit(self, logit: torch.Tensor, threshold: float)->torch.Tensor:
+        """_summary_
+
+        Args:
+            logit (torch.Tensor): _description_
+            threshold (float): _description_
+
+        Returns:
+            torch.Tensor: _description_
+        """
+        return torch.where(logit > threshold, 1, 0)
     def evaluate_training(self):
         logger.info("Evaluating training data...")
         self.net.eval()
@@ -440,7 +459,8 @@ class Trainer:
         with torch.no_grad():
             self.net.eval()
             final_predictions, final_labels = torch.tensor([]).to("cpu"), torch.tensor([]).to("cpu")
-
+            
+            der_list = []
             for self.current_batch, batch_data in enumerate(self.validation_generator):
                 input, label = batch_data
 
@@ -471,8 +491,15 @@ class Trainer:
                 # Compute DER
                 label = label.squeeze()
                 prediction = prediction.squeeze()
-                ders, avg_der = compute_der_batch(label, prediction, self.params.frame_length)
-                logger.info(f"DER: {avg_der}")
+                binary_prediction = self.apply_threshold_to_logit(prediction, self.params.logit_threshold)
+                ders, avg_der = compute_der_batch(label, binary_prediction, self.params.frame_length)
+                der_list + ders
+                logger.info(f"average batch DER: {avg_der}")
+            
+            print("ders", ders)
+            print("der_list:", der_list)
+            self.validation_eval_metric = np.mean(der_list)
+            logger.info(f"Validation evaluation metric: {self.validation_eval_metric:.3f}")
 
     def evaluate(self):
         self.evaluate_training()

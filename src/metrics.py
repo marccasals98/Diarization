@@ -4,6 +4,8 @@ from pyannote.core import Annotation, Segment
 from pyannote.metrics.diarization import DiarizationErrorRate
 from typing import List, Tuple
 import torch
+import ipdb
+
 
 
 
@@ -45,7 +47,7 @@ def compute_der(reference_matrix: np.ndarray,
 
     # Compute overlap (in frames) between each reference speaker i and predicted speaker j
     # overlap[i, j] = number of frames where ref_speaker i and hyp_speaker j are both active
-    overlap = ref_mat.dot(hyp_mat.T)  # shape (G, P)
+    overlap = ref_mat.dot(hyp_mat.T)  # shape (ref_n_speakers, hyp_n_speakers)
 
     # Find optimal one-to-one mapping between reference and hypothesis speakers to maximize overlap
     # (Hungarian algorithm solves minimum cost, so we negate overlap or use maximize=True if available)
@@ -128,6 +130,7 @@ def compute_der_batch(reference_batch: torch.Tensor,
     Returns:
         Tuple[List[float], float]: DER values for each example in the batch and average DER.
     """
+    ipdb.set_trace()
     reference_batch = np.array(reference_batch)
     hypothesis_batch = np.array(hypothesis_batch)
 
@@ -137,7 +140,7 @@ def compute_der_batch(reference_batch: torch.Tensor,
     ders = []
     for ref_mat, hyp_mat in zip(reference_batch, hypothesis_batch):
         der = compute_der(ref_mat, hyp_mat, frame_duration)
-        ders.append(der)
+        ders.append(float(der))
 
     # Optionally, compute the average DER over the batch:
     average_der = np.mean(ders)

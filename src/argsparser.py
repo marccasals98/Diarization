@@ -167,6 +167,11 @@ class ArgsParser:
             default=0.5,
         )
         self.parser.add_argument(
+            '--logit_threshold',
+            type=float,
+            default=0.5,
+        )
+        self.parser.add_argument(
             '--early_stopping', 
             type = int, 
             default = 25,
