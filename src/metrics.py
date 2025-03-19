@@ -4,7 +4,6 @@ from pyannote.core import Annotation, Segment
 from pyannote.metrics.diarization import DiarizationErrorRate
 from typing import List, Tuple
 import torch
-import ipdb
 
 
 
@@ -130,7 +129,6 @@ def compute_der_batch(reference_batch: torch.Tensor,
     Returns:
         Tuple[List[float], float]: DER values for each example in the batch and average DER.
     """
-    ipdb.set_trace()
     reference_batch = np.array(reference_batch)
     hypothesis_batch = np.array(hypothesis_batch)
 

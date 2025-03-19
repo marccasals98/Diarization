@@ -432,8 +432,9 @@ class Trainer:
         return torch.where(logit > threshold, 1, 0)
     def evaluate_training(self):
         logger.info("Evaluating training data...")
-        self.net.eval()
         with torch.no_grad():
+            self.net.eval()
+            der_list = []
             for self.current_batch, batch_data in enumerate(self.training_generator):
                 input, label = batch_data
 
@@ -451,11 +452,25 @@ class Trainer:
                 self.loss = self.loss_function(prediction, label, n_speakers)
                 self.train_loss = self.loss.item()
 
+                prediction = prediction.to("cpu")
+                label = label.to("cpu")
+
                 # Update best loss
                 if self.train_loss < self.best_train_loss:
                     self.best_train_loss = self.train_loss
+                # Compute DER
+                label = label.squeeze()
+                prediction = prediction.squeeze()
+                binary_prediction = self.apply_threshold_to_logit(prediction, self.params.logit_threshold)
+                ders, avg_der = compute_der_batch(label, binary_prediction, self.params.frame_length)
+                der_list + ders
+                logger.info(f"average batch DER: {avg_der}")
+            
+            self.training_eval_metric = np.mean(der_list)
+            logger.info(f"Training evaluation metric: {self.training_eval_metric:.3f}")
+
     def evaluate_validation(self):
-        logger.info("Evaliating validation data...")
+        logger.info("Evaluating validation data...")
         with torch.no_grad():
             self.net.eval()
             final_predictions, final_labels = torch.tensor([]).to("cpu"), torch.tensor([]).to("cpu")
@@ -480,7 +495,10 @@ class Trainer:
                 
                 prediction = prediction.to("cpu")
                 label = label.to("cpu")
-              
+
+                final_predictions = torch.cat(tensors=(final_predictions, prediction))
+                final_labels = torch.cat(tensors=(final_labels, label))
+
 
                 # Update best loss
                 if self.validation_loss < self.best_validation_loss:
@@ -495,9 +513,7 @@ class Trainer:
                 ders, avg_der = compute_der_batch(label, binary_prediction, self.params.frame_length)
                 der_list + ders
                 logger.info(f"average batch DER: {avg_der}")
-            
-            print("ders", ders)
-            print("der_list:", der_list)
+
             self.validation_eval_metric = np.mean(der_list)
             logger.info(f"Validation evaluation metric: {self.validation_eval_metric:.3f}")
 
