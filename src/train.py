@@ -13,6 +13,7 @@ import datetime
 import os
 from tools import get_memory_info
 from metrics import compute_der_batch
+import ipdb
 
 # region logging
 # Logging
@@ -434,7 +435,8 @@ class Trainer:
         logger.info("Evaluating training data...")
         with torch.no_grad():
             self.net.eval()
-            der_list = []
+            final_predictions, final_labels = torch.tensor([]).to("cpu"), torch.tensor([]).to("cpu")
+            
             for self.current_batch, batch_data in enumerate(self.training_generator):
                 input, label = batch_data
 
@@ -455,18 +457,17 @@ class Trainer:
                 prediction = prediction.to("cpu")
                 label = label.to("cpu")
 
-                # Update best loss
-                if self.train_loss < self.best_train_loss:
-                    self.best_train_loss = self.train_loss
-                # Compute DER
-                label = label.squeeze()
-                prediction = prediction.squeeze()
-                binary_prediction = self.apply_threshold_to_logit(prediction, self.params.logit_threshold)
-                ders, avg_der = compute_der_batch(label, binary_prediction, self.params.frame_length)
-                der_list + ders
-                logger.info(f"average batch DER: {avg_der}")
+                # Final predictions vector
+                final_predictions = torch.cat(tensors=(final_predictions, prediction))
+                final_labels = torch.cat(tensors=(final_labels, label))
+
+
+            # Compute DER
+            final_binary_prediction = self.apply_threshold_to_logit(final_predictions, self.params.logit_threshold)
+            ders, avg_der = compute_der_batch(label, final_binary_prediction, self.params.frame_length)
+            logger.info(f"average batch DER: {avg_der}")
             
-            self.training_eval_metric = np.mean(der_list)
+            self.training_eval_metric = np.mean(ders)
             logger.info(f"Training evaluation metric: {self.training_eval_metric:.3f}")
 
     def evaluate_validation(self):
@@ -475,7 +476,6 @@ class Trainer:
             self.net.eval()
             final_predictions, final_labels = torch.tensor([]).to("cpu"), torch.tensor([]).to("cpu")
             
-            der_list = []
             for self.current_batch, batch_data in enumerate(self.validation_generator):
                 input, label = batch_data
 
@@ -496,25 +496,18 @@ class Trainer:
                 prediction = prediction.to("cpu")
                 label = label.to("cpu")
 
+                # Final predictions vector
                 final_predictions = torch.cat(tensors=(final_predictions, prediction))
                 final_labels = torch.cat(tensors=(final_labels, label))
 
 
-                # Update best loss
-                if self.validation_loss < self.best_validation_loss:
-                    self.best_validation_loss = self.validation_loss
-                    self.best_model_validation_eval_metric = self.validation_eval_metric
-                    self.best_model_training_eval_metric = self.training_eval_metric
+            # Compute DER
+            #ipdb.set_trace()
+            final_binary_prediction = self.apply_threshold_to_logit(final_predictions, self.params.logit_threshold)
+            ders, avg_der = compute_der_batch(final_labels, final_binary_prediction, self.params.frame_length)
+            logger.info(f"average batch DER: {avg_der}")
 
-                # Compute DER
-                label = label.squeeze()
-                prediction = prediction.squeeze()
-                binary_prediction = self.apply_threshold_to_logit(prediction, self.params.logit_threshold)
-                ders, avg_der = compute_der_batch(label, binary_prediction, self.params.frame_length)
-                der_list + ders
-                logger.info(f"average batch DER: {avg_der}")
-
-            self.validation_eval_metric = np.mean(der_list)
+            self.validation_eval_metric = np.mean(ders)
             logger.info(f"Validation evaluation metric: {self.validation_eval_metric:.3f}")
 
     def evaluate(self):
@@ -578,13 +571,7 @@ class Trainer:
         # Create directory if doesn't exists
         if not os.path.exists(checkpoint_folder):
             os.makedirs(checkpoint_folder)
-        
-        # Save the model parameters in a json file
-        logger.info(f"Saving trainable parameters in a json file...")
-        self.save_trainable_params_json(self.net, self.params.json_output_folder)
-        logger.info(f"The json was saved in {self.params.json_output_folder}")
-        
-        
+
         logger.info(f"Saving training and model information in {checkpoint_path}")
         torch.save(checkpoint, checkpoint_path)
         logger.info(f"Done.")

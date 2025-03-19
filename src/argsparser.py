@@ -57,7 +57,7 @@ class ArgsParser:
             default='/gpfs/projects/bsc88/speech/speaker_recognition/outputs/diarization/models',
         )
         self.parser.add_argument(
-            '--save_model_name',
+            '--model_name',
             type=str,
             default='debug_model',
         )
