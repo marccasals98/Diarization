@@ -13,7 +13,7 @@ import datetime
 import os
 from tools import get_memory_info
 from metrics import compute_der_batch
-import ipdb
+import wandb
 
 # region logging
 # Logging
@@ -41,6 +41,7 @@ class Trainer:
         self.start_datetime = datetime.datetime.strftime(
             datetime.datetime.now(), "%y-%m-%d %H:%M:%S"
         )
+        if params.use_weights_and_biases: self.init_wandb(params)
         self.params = params
         logger.info(self.params)
         self.init_training_variables()
@@ -52,6 +53,35 @@ class Trainer:
         self.load_loss_function()
         self.load_optimizer()
         self.main()
+
+    #region Wandb
+    def init_wandb(self, params):
+        self.wandb_run = wandb.init(
+            project="speaker_diarization",
+            job_type="training",
+            entity="BSC-CNS",
+            dir=params.wandb_dir,
+            resume = "allow",
+            mode="offline",
+            config=params,
+        )
+        logger.info(f"wandb running online/offline: {self.wandb_run.settings.mode}")
+        logger.info(f"dir for wandb init: {params.wandb_dir}")
+        logger.info(f"Run id: {wandb.run.id}_{wandb.run.name}")
+
+    def config_wandb(self):
+        # 1 - Save the params
+        self.wandb_config = vars(self.params)
+
+        # 3 - Save additional params
+
+        self.wandb_config["total_trainable_params"] = self.total_trainable_params
+        self.wandb_config["gpus"] = self.gpus_count
+
+        # 4 - Update the wandb config
+        #wandb.config.update(self.wandb_config)
+        self.wandb_run.config.update(self.wandb_config)
+    #endregion
 
     # region initialization
     def init_training_variables(self):

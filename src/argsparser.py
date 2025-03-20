@@ -178,6 +178,19 @@ class ArgsParser:
             help = "Training is stopped if there are early_stopping consectuive validations without improvement. \
                 Set to 0 if you don't want to execute this utility.",
         )
+        self.parser.add_argument(
+            '--use_weights_and_biases',
+            action = argparse.BooleanOptionalAction,
+            default = True,
+            help = 'Set to True if you want to use Weights and Biases.',
+            )
+        self.parser.add_argument(
+            '--wandb_dir',
+            type = str, 
+            default= "/gpfs/projects/bsc88/speech/speaker_recognition/outputs/diarization/wandb",
+            help = 'An absolute path to the directory where Weight & Biases metadata and downloaded files will be stored, \
+            when use_weights_and_biases is True. If not specified, this defaults to the ./wandb directory.',
+            )
 
         return self.parser.parse_args()
     
