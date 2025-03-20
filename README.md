@@ -1,5 +1,5 @@
 # Diarization
-Speaker Diarization is the realm of techniques that focus on answering "Who spoke when?". The main goal of this repo is to test state-of-the-art diarization systems. To do so, we will test different speaker diarization datasets. The initial efforts will consider the [VoxConverse](https://www.robots.ox.ac.uk/~vgg/data/voxconverse/) dataset.
+Speaker Diarization is the realm of techniques that focus on answering **"Who spoke when?"**. The main goal of this repo is to test state-of-the-art diarization systems. To do so, we will test different speaker diarization datasets. The initial efforts will consider the [VoxConverse](https://www.robots.ox.ac.uk/~vgg/data/voxconverse/) dataset.
 
 ## 0. Converting files to RTTM.
 There exist multiple formats in which speaker diarization is represented:
