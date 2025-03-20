@@ -187,7 +187,7 @@ class ArgsParser:
         self.parser.add_argument(
             '--wandb_dir',
             type = str, 
-            default= "/gpfs/projects/bsc88/speech/speaker_recognition/outputs/diarization/wandb",
+            default= "/home/bsc/bsc088135/Diarization/wandb",
             help = 'An absolute path to the directory where Weight & Biases metadata and downloaded files will be stored, \
             when use_weights_and_biases is True. If not specified, this defaults to the ./wandb directory.',
             )
