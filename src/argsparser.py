@@ -44,12 +44,12 @@ class ArgsParser:
         self.parser.add_argument(
             '--print_training_info_every',
             type=int,
-            default=10,
+            default=50,
         )
         self.parser.add_argument(
             '--eval_and_save_best_model_every',
             type=int,
-            default=5,
+            default=100,
         )
         self.parser.add_argument(
             '--save_model_path',

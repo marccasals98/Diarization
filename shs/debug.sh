@@ -24,4 +24,4 @@ source /gpfs/projects/bsc88/speech/environments/diarize_venv/bin/activate
 export TORCH_HOME="/gpfs/projects/bsc88/speech/speaker_recognition/outputs/diarization/cache/torch"
 
 srun python src/train.py \
-    --model_name "debug" \
+    --model_name "debug" 
