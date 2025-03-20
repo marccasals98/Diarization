@@ -44,12 +44,12 @@ class ArgsParser:
         self.parser.add_argument(
             '--print_training_info_every',
             type=int,
-            default=10,
+            default=50,
         )
         self.parser.add_argument(
             '--eval_and_save_best_model_every',
             type=int,
-            default=5,
+            default=100,
         )
         self.parser.add_argument(
             '--save_model_path',
@@ -57,7 +57,7 @@ class ArgsParser:
             default='/gpfs/projects/bsc88/speech/speaker_recognition/outputs/diarization/models',
         )
         self.parser.add_argument(
-            '--save_model_name',
+            '--model_name',
             type=str,
             default='debug_model',
         )
@@ -163,6 +163,11 @@ class ArgsParser:
         )
         self.parser.add_argument(
             '--dc_loss_ratio',
+            type=float,
+            default=0.5,
+        )
+        self.parser.add_argument(
+            '--logit_threshold',
             type=float,
             default=0.5,
         )

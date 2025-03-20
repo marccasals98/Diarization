@@ -24,11 +24,11 @@ source /gpfs/projects/bsc88/speech/environments/diarize_venv/bin/activate
 export TORCH_HOME="/gpfs/projects/bsc88/speech/speaker_recognition/outputs/diarization/cache/torch"
 
 srun python src/train.py \
-    --save_model_name "debug_tiny" \
+    --model_name "debug_tiny" \
     --audio_path_train "/gpfs/projects/bsc88/speech/data/raw_data/diarization/voxconverse_toy/audio/dev" \
     --audio_path_validation "/gpfs/projects/bsc88/speech/data/raw_data/diarization/voxconverse_toy/audio/test" \
     --rttm_path_train "/gpfs/projects/bsc88/speech/data/raw_data/diarization/voxconverse_toy/dev" \
     --rttm_path_validation "/gpfs/projects/bsc88/speech/data/raw_data/diarization/voxconverse_toy/test" \
     --eval_and_save_best_model_every 1 \
-    --max_epochs 5 \
+    --max_epochs 20 \
     --print_training_info_every 1
