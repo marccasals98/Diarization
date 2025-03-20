@@ -5,10 +5,10 @@ Speaker Diarization is the realm of techniques that focus on answering "Who spok
 There exist multiple formats in which speaker diarization is represented:
 Rich Transcription Time Marked (RTTM) files are space-delimited text files containing one turn per line, each line containing ten fields:
 
-* Type -- segment type; should always by SPEAKER
+* Type -- segment type; should always be SPEAKER
 * File ID -- file name; basename of the recording minus extension (e.g., rec1_a)
 * Channel ID -- channel (1-indexed) that turn is on; should always be 1
-* Turn Onset -- onset of turn in seconds from beginning of recording
+* Turn Onset -- onset of turn in seconds from the beginning of the recording
 * Turn Duration -- duration of turn in seconds
 * Orthography Field -- should always by < NA >
 * Speaker Type -- should always be < NA >
