@@ -446,11 +446,33 @@ class Trainer:
 
             self.eval_and_save_best_model()
 
-            self.check_print_training_info()
 
             # Update best loss
             if self.train_loss < self.best_train_loss:
                 self.best_train_loss = self.train_loss
+
+            self.check_early_stopping()
+            self.check_print_training_info()
+
+            if self.params.use_weights_and_biases:
+                try:
+                    self.wandb_run.log(
+                        {
+                            "Epoch" : self.epoch,
+                            "Batch" : self.current_batch,
+                            "Train loss" : self.train_loss,
+                            "Validation loss" : self.validation_loss,
+                            "learning_rate" : self.params.learning_rate,
+                            "Training DER" : self.training_eval_metric,
+                            "Validation DER" : self.validation_eval_metric,
+                            'best_model_train_loss' : self.best_model_train_loss,
+                            'best_model_training_eval_metric' : self.best_model_training_eval_metric,
+                            'best_model_validation_eval_metric' : self.best_model_validation_eval_metric,
+                        },
+                        step = self.step
+                        )
+                except Exception as e:
+                    logger.error('Failed at wandb.log: '+ str(e))
 
             if self.early_stopping_flag == True:
                 logger.info("Early stopping condition met.")
@@ -611,6 +633,9 @@ class Trainer:
             "validations_without_improvement": self.validations_without_improvement,
             "validations_without_improvement_or_opt_update": self.validations_without_improvement_or_opt_update,
             "train_loss": self.train_loss,
+            "validation_loss": self.validation_loss,
+            "training_eval_metric": self.training_eval_metric,
+            "validation_eval_metric": self.validation_eval_metric,
             "best_train_loss": self.best_train_loss,
             "best_model_train_loss": self.best_model_train_loss,
             "best_model_training_eval_metric": self.best_model_training_eval_metric,
