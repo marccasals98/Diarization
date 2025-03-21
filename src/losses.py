@@ -99,3 +99,35 @@ class PITLoss(_Loss):
             torch.Tensor: _description_
         """
         return pit_loss_multispk(input, target, n_speakers, self.detach_attractor_loss)
+
+def deep_clusering(embedding:torch.Tensor, label:torch.Tensor)->torch.Tensor:
+    """Deep clustering loss function in PyTorch.
+
+    Args:
+        embedding (torch.Tensor): Tensor of shape [T, D] containing activation values.
+        label (torch.Tensor): Tensor of shape [T, C] containing binary labels.
+
+    Returns:
+        torch.Tensor: A scalar tensor representing the deep clustering loss.
+    """
+    T, C = label.size()
+
+    indices = []
+    for t in label:
+        # Convert each element to an integer and then to a string.
+        bits = ''.join(str(int(x.item())) for x in t)
+        index = int(bits, 2)
+        indices.append(index)
+    indices = torch.tensor(indices)
+
+    # Create one-hot matrix 
+    label_f = torch.zeros((label.size(0), 2**label.size(1))) # shape (time, 2**n_speakers)
+    label_f[torch.arange(T), indices] = 1.0
+
+    # Compute affinity matrices in the time domain.
+    affinity_embedding = torch.matmul(embedding, embedding.t())  # [T, T]
+    affinity_label = torch.matmul(label_f, label_f.t())          # [T, T]
+
+    # Compute the mean squared error between the two affinity matrices.
+    loss = F.mse_loss(affinity_embedding, affinity_label, reduction='sum')
+    return loss
