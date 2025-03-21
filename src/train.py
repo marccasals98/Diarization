@@ -8,12 +8,13 @@ from torch.utils.data import DataLoader
 from torch import optim
 from eend import BLSTM_EEND
 from torch import nn
-from losses import PITLoss
+from losses import PITLoss, DeepClusteringLoss
 import datetime
 import os
 from tools import get_memory_info
 from metrics import compute_der_batch
 import wandb
+import ipdb
 
 # region logging
 # Logging
@@ -207,11 +208,14 @@ class Trainer:
             logger.debug(message)
 
     def load_loss_function(self):
-        self.loss_function = PITLoss(
+        self.dc_loss_function = DeepClusteringLoss()
+
+
+        self.pit_loss_function = PITLoss(
             n_speakers=self.params.max_num_speakers,
             detach_attractor_loss=self.params.detach_attractor_loss,
         )
-        logger.info("Loss function loaded.")
+        logger.info("Loss functions loaded.")
 
     def load_optimizer(self):
         logger.info("Loading the optimizer...")
@@ -429,8 +433,11 @@ class Trainer:
                 logger.info(f"label.shape: {label.shape}")
 
             _, prediction, embeddings = self.net(input)
-
-            self.loss = self.loss_function(prediction, label, n_speakers)
+            pit_loss = self.pit_loss_function(prediction, label, n_speakers)
+            dc_loss = self.dc_loss_function(embeddings, label)
+            
+            # HACK put alpha and beta
+            self.loss = pit_loss + dc_loss
             self.train_loss = self.loss.item()
 
             # BACKPROPAGATION
@@ -531,8 +538,10 @@ class Trainer:
 
                 _, prediction, embeddings = self.net(input)
 
-                self.loss = self.loss_function(prediction, label, n_speakers)
-                self.train_loss = self.loss.item()
+                pit_loss = self.pit_loss_function(prediction, label, n_speakers)
+                dc_loss = self.dc_loss_function(embeddings, label)                
+                loss = pit_loss + dc_loss
+                self.train_loss = loss.item()
 
                 prediction = prediction.to("cpu")
                 label = label.to("cpu")
@@ -583,8 +592,12 @@ class Trainer:
 
                 _, prediction, embeddings = self.net(input)
 
-                self.loss = self.loss_function(prediction, label, n_speakers)
-                self.validation_loss = self.loss.item()
+                pit_loss = self.pit_loss_function(prediction, label, n_speakers)
+                dc_loss = self.dc_loss_function(embeddings, label)
+                
+                # HACK put alpha and beta
+                loss = pit_loss + dc_loss
+                self.validation_loss = loss.item()
 
                 prediction = prediction.to("cpu")
                 label = label.to("cpu")
@@ -594,7 +607,6 @@ class Trainer:
                 final_labels = torch.cat(tensors=(final_labels, label))
 
             # Compute DER
-            # ipdb.set_trace()
             final_binary_prediction = self.apply_threshold_to_logit(
                 final_predictions, self.params.logit_threshold
             )
