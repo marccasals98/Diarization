@@ -59,7 +59,7 @@ class Trainer:
         self.wandb_run = wandb.init(
             project="speaker_diarization",
             job_type="training",
-            entity="BSC-CNS",
+            entity="upc-veu",
             dir=params.wandb_dir,
             resume = "allow",
             mode="offline",
