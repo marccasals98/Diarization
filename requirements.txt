@@ -10,3 +10,4 @@ scipy==1.15.2
 psutil==7.0.0
 pyannote-core==5.0.0
 pyannote.audio==3.3.2
+wandb==0.19.8

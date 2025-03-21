@@ -19,7 +19,7 @@
 date +%Y-%m-%d_%H:%M:%S
 
 # activate env
-source /gpfs/projects/bsc88/speech/environments/diarize_venv/bin/activate
+source diarization-uv/bin/activate
 
 export TORCH_HOME="/gpfs/projects/bsc88/speech/speaker_recognition/outputs/diarization/cache/torch"
 

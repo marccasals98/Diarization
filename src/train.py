@@ -13,7 +13,7 @@ import datetime
 import os
 from tools import get_memory_info
 from metrics import compute_der_batch
-import ipdb
+import wandb
 
 # region logging
 # Logging
@@ -41,6 +41,7 @@ class Trainer:
         self.start_datetime = datetime.datetime.strftime(
             datetime.datetime.now(), "%y-%m-%d %H:%M:%S"
         )
+        if params.use_weights_and_biases: self.init_wandb(params)
         self.params = params
         logger.info(self.params)
         self.init_training_variables()
@@ -52,6 +53,35 @@ class Trainer:
         self.load_loss_function()
         self.load_optimizer()
         self.main()
+
+    #region Wandb
+    def init_wandb(self, params):
+        self.wandb_run = wandb.init(
+            project="speaker_diarization",
+            job_type="training",
+            entity="upc-veu",
+            dir=params.wandb_dir,
+            resume = "allow",
+            mode="offline",
+            config=params,
+        )
+        logger.info(f"wandb running online/offline: {self.wandb_run.settings.mode}")
+        logger.info(f"dir for wandb init: {params.wandb_dir}")
+        logger.info(f"Run id: {wandb.run.id}_{wandb.run.name}")
+
+    def config_wandb(self):
+        # 1 - Save the params
+        self.wandb_config = vars(self.params)
+
+        # 3 - Save additional params
+
+        self.wandb_config["total_trainable_params"] = self.total_trainable_params
+        self.wandb_config["gpus"] = self.gpus_count
+
+        # 4 - Update the wandb config
+        #wandb.config.update(self.wandb_config)
+        self.wandb_run.config.update(self.wandb_config)
+    #endregion
 
     # region initialization
     def init_training_variables(self):
@@ -416,11 +446,33 @@ class Trainer:
 
             self.eval_and_save_best_model()
 
-            self.check_print_training_info()
 
             # Update best loss
             if self.train_loss < self.best_train_loss:
                 self.best_train_loss = self.train_loss
+
+            self.check_early_stopping()
+            self.check_print_training_info()
+
+            if self.params.use_weights_and_biases:
+                try:
+                    self.wandb_run.log(
+                        {
+                            "Epoch" : self.epoch,
+                            "Batch" : self.current_batch,
+                            "Train loss" : self.train_loss,
+                            "Validation loss" : self.validation_loss,
+                            "learning_rate" : self.params.learning_rate,
+                            "Training DER" : self.training_eval_metric,
+                            "Validation DER" : self.validation_eval_metric,
+                            'best_model_train_loss' : self.best_model_train_loss,
+                            'best_model_training_eval_metric' : self.best_model_training_eval_metric,
+                            'best_model_validation_eval_metric' : self.best_model_validation_eval_metric,
+                        },
+                        step = self.step
+                        )
+                except Exception as e:
+                    logger.error('Failed at wandb.log: '+ str(e))
 
             if self.early_stopping_flag == True:
                 logger.info("Early stopping condition met.")
@@ -581,6 +633,9 @@ class Trainer:
             "validations_without_improvement": self.validations_without_improvement,
             "validations_without_improvement_or_opt_update": self.validations_without_improvement_or_opt_update,
             "train_loss": self.train_loss,
+            "validation_loss": self.validation_loss,
+            "training_eval_metric": self.training_eval_metric,
+            "validation_eval_metric": self.validation_eval_metric,
             "best_train_loss": self.best_train_loss,
             "best_model_train_loss": self.best_model_train_loss,
             "best_model_training_eval_metric": self.best_model_training_eval_metric,
