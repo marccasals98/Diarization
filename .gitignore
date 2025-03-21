@@ -1,2 +1,3 @@
 src/__pycache__/*
-wandb/*
+wandb/
+/home/bsc/bsc088135/Diarization/wandb
