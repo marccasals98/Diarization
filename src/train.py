@@ -412,7 +412,7 @@ class Trainer:
             self.info_mem(self.step, logger_level="DEBUG")
 
     def train_single_epoch(self, epoch):
-        logger.info(f"Training epoch {epoch+1} of {self.params.max_epochs}")
+        logger.info(f"Training epoch {epoch} of {self.params.max_epochs}")
 
         self.net.train()
         for self.current_batch, batch_data in enumerate(self.training_generator):
