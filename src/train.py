@@ -89,6 +89,7 @@ class Trainer:
         self.step = 0
         self.epoch = 0
         self.train_loss = np.inf
+        self.validation_loss = np.inf
         self.best_train_loss = np.inf
         self.best_validation_loss = np.inf
         self.validation_eval_metric = np.inf
