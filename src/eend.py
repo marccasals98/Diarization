@@ -87,7 +87,6 @@ class BLSTM_EEND(nn.Module):
                 n_layers=1,
                 embedding_layers=1,
                 embedding_size=20,
-                dc_loss_ratio=0.5,
                 n_fft=2048,
                 ):
         """ BLSTM-based diarization model.
@@ -100,7 +99,6 @@ class BLSTM_EEND(nn.Module):
             n_layers (int): Number of LSTM layers after embedding
             embedding_layers (int): Number of LSTM layers for embedding
             embedding_size (int): Dimension of embedding vector
-            dc_loss_ratio (float): mixing parameter for DPCL loss
         """
         super(BLSTM_EEND, self).__init__()
         self.segment_length = segment_length
@@ -129,7 +127,6 @@ class BLSTM_EEND(nn.Module):
         # Linear layer mapping LSTM embedding output to embedding space.
         self.linear2 = nn.Linear(hidden_size * 2, embedding_size)
 
-        self.dc_loss_ratio = dc_loss_ratio
         self.n_speakers = n_speakers
 
     def init_audio_feature_extractor(self, feature_extractor, sample_rate, feature_extractor_output_vectors_dimension):

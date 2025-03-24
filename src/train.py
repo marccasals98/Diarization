@@ -145,7 +145,6 @@ class Trainer:
             self.params.n_layers,
             self.params.embedding_layers,
             self.params.embedding_size,
-            self.params.dc_loss_ratio,
             self.params.n_fft,
         )
 
@@ -436,8 +435,8 @@ class Trainer:
             pit_loss = self.pit_loss_function(prediction, label, n_speakers)
             dc_loss = self.dc_loss_function(embeddings, label)
             
-            # HACK put alpha and beta
-            self.loss = pit_loss + dc_loss
+            # Calculate the loss as the sum of the pit loss and the deep clustering loss (weighted by dc_loss_ratio)
+            self.loss = (1-self.params.dc_loss_ratio) * pit_loss + self.params.dc_loss_ratio * dc_loss
             self.train_loss = self.loss.item()
 
             # BACKPROPAGATION
