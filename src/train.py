@@ -94,6 +94,8 @@ class Trainer:
         self.best_validation_loss = np.inf
         self.validation_eval_metric = np.inf
         self.training_eval_metric = np.inf
+        self.best_model_train_loss = np.inf
+        self.best_model_validation_loss = np.inf
         self.best_model_validation_eval_metric = np.inf
         self.best_model_training_eval_metric = np.inf
         self.validations_without_improvement = 0
