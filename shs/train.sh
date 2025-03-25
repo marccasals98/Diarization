@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH -D .
 #SBATCH -A bsc88
-#SBATCH -q acc_debug
+#SBATCH -q acc_bscls
 ############# Obligatorias #######################
-#SBATCH --time=0-02:00:00               # Consultar batchlim para entender los límites de las particiones. 
+#SBATCH --time=2-00:00:00               # Consultar batchlim para entender los límites de las particiones. 
 ################# HOST ###########################
 #SBATCH --nodes=1                       # Número de nodos
 #SBATCH --ntasks=1                      # Número de tareas MPI totales
@@ -24,6 +24,6 @@ source diarization-uv/bin/activate
 export TORCH_HOME="/gpfs/projects/bsc88/speech/speaker_recognition/outputs/diarization/cache/torch"
 
 srun python src/train.py \
-    --model_name "debug" \
+    --model_name "train" \
     --max_epochs 20 \
     --dc_loss_ratio 0.5

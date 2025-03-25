@@ -49,7 +49,7 @@ class ArgsParser:
         self.parser.add_argument(
             '--eval_and_save_best_model_every',
             type=int,
-            default=100,
+            default=500,
         )
         self.parser.add_argument(
             '--save_model_path',
@@ -114,7 +114,7 @@ class ArgsParser:
         self.parser.add_argument(
             '--max_epochs',
             type=int,
-            default=1,
+            default=20,
         )
         self.parser.add_argument(
             '--feature_extractor_output_vectors_dimension',
