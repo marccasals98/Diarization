@@ -31,4 +31,5 @@ srun python src/train.py \
     --rttm_path_validation "/gpfs/projects/bsc88/speech/data/raw_data/diarization/voxconverse_toy/test" \
     --eval_and_save_best_model_every 1 \
     --max_epochs 20 \
+    --dc_loss_ratio 0.0 \
     --print_training_info_every 1
