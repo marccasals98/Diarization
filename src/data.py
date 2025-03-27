@@ -95,6 +95,9 @@ def pad_labels(labels: np.array, target_num: int) -> np.array:
         labels = np.pad(labels, pad_width, mode='constant')
     return labels
 
+def data_collator():
+    ...
+
 class TrainDataset(data.Dataset):
     def __init__(self, 
                 audio_files: str,
@@ -103,7 +106,7 @@ class TrainDataset(data.Dataset):
                 n_frames: int,
                 segment_length: int, 
                 allow_overlap: bool, 
-                max_num_speakers: int,
+                pad_num_speakers: int,
                 transform=None,
                 frame_length=0.025):
         
@@ -113,7 +116,7 @@ class TrainDataset(data.Dataset):
         self.n_frames = n_frames
         self.segment_length = segment_length
         self.allow_overlap = allow_overlap
-        self.max_num_speakers = max_num_speakers # HACK implement maximum number of speakers
+        self.pad_num_speakers = pad_num_speakers # HACK implement maximum number of speakers
         self.transform = transform
         self.frame_length = frame_length # in seconds
         self.precompute_segments()
@@ -220,9 +223,27 @@ class TrainDataset(data.Dataset):
             audio_segment = self.transform(audio_segment)
         
         # If required, pad the labels to match the maximum number of speakers.
-        if self.max_num_speakers is not None:
-            labels = pad_labels(labels, self.max_num_speakers)
+        print(f"pad_num_speakers: {self.pad_num_speakers}")
+        if self.pad_num_speakers is not None:
+            labels = pad_labels(labels, self.pad_num_speakers)
         # Convert to tensors:
         audio_tensor = audio_segment.clone().detach().float()
         label_tensor = torch.tensor(labels, dtype=torch.long)
         return audio_tensor, label_tensor
+
+training_dataset = TrainDataset(
+    audio_files="/gpfs/projects/bsc88/speech/data/raw_data/diarization/voxconverse/audio/dev/audio",
+    rttm_paths="/gpfs/projects/bsc88/speech/data/raw_data/diarization/voxconverse/dev",
+    feature_stride=0.01,
+    n_frames=400,
+    segment_length=5,
+    allow_overlap=True,
+    pad_num_speakers=None,
+    frame_length=0.025,
+)
+print(training_dataset[0][1].shape)
+print(training_dataset[1][1].shape)
+print(training_dataset[2][1].shape)
+print(training_dataset[3][1].shape)
+print(training_dataset[4][1].shape)
+print(training_dataset[30][1].shape)

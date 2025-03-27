@@ -10,7 +10,7 @@ salloc \
     --ntasks=1 \
     --ntasks-per-node=1 \
     --cpus-per-task=40 \
-    --gres=gpu:2 \
+    --gres=gpu:1 \
     --job-name=diarization \
     --verbose
 

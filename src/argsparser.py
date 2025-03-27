@@ -67,14 +67,16 @@ class ArgsParser:
             default=True,
         )
         self.parser.add_argument(
-            '--max_num_speakers',
+            '--pad_num_speakers',
             type=int,
-            default=21,
+            default=None,
+            help="To pad the labels to match the maximum number of speakers. If None, the labels are not padded.",
         )
         self.parser.add_argument(
-            '--max_num_speakers_validation',
+            '--pad_num_speakers_validation',
             type=int,
-            default=21,
+            default=None,
+            help="To pad the labels to match the maximum number of speakers. If None, the labels are not padded.",
         )        
         self.parser.add_argument(
             '--frame_length',

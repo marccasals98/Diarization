@@ -142,7 +142,7 @@ class Trainer:
             self.params.feature_extractor,
             self.params.sample_rate,
             self.params.feature_extractor_output_vectors_dimension,
-            self.params.max_num_speakers,
+            self.params.pad_num_speakers,
             self.params.dropout,
             self.params.hidden_size,
             self.params.n_layers,
@@ -214,7 +214,7 @@ class Trainer:
 
 
         self.pit_loss_function = PITLoss(
-            n_speakers=self.params.max_num_speakers,
+            n_speakers=self.params.pad_num_speakers,
             detach_attractor_loss=self.params.detach_attractor_loss,
         )
         logger.info("Loss functions loaded.")
@@ -276,7 +276,7 @@ class Trainer:
             n_frames=num_frames,
             segment_length=self.params.segment_length,
             allow_overlap=self.params.allow_overlap,
-            max_num_speakers=self.params.max_num_speakers,
+            pad_num_speakers=self.params.pad_num_speakers,
             frame_length=self.params.frame_length,
         )
         data_loader_parameters = {
@@ -300,7 +300,7 @@ class Trainer:
             n_frames=n_frames,
             segment_length=self.params.segment_length,
             allow_overlap=self.params.allow_overlap,
-            max_num_speakers=self.params.max_num_speakers_validation,
+            pad_num_speakers=self.params.pad_num_speakers_validation,
             frame_length=self.params.frame_length,
         )
         data_loader_parameters = {
@@ -437,8 +437,6 @@ class Trainer:
             _, prediction, embeddings = self.net(input)
             pit_loss = self.pit_loss_function(prediction, label, n_speakers)
             dc_loss = self.dc_loss_function(embeddings, label)
-            logger.info(f"pit_loss: {pit_loss}")
-            logger.info(f"dc_loss: {dc_loss}")
 
             # Calculate the loss as the sum of the pit loss and the deep clustering loss (weighted by dc_loss_ratio)
             self.loss = (1-self.params.dc_loss_ratio) * pit_loss + self.params.dc_loss_ratio * dc_loss
