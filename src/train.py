@@ -1,6 +1,6 @@
 from argsparser import ArgsParser
 import logging
-from data import TrainDataset
+from data import TrainDataset, pad_labels
 import random
 import torch
 import numpy as np
@@ -15,6 +15,7 @@ from tools import get_memory_info
 from metrics import compute_der_batch
 import wandb
 import ipdb
+from typing import Tuple
 
 # region logging
 # Logging
@@ -27,7 +28,7 @@ logger_formatter = logging.Formatter(
     datefmt="%y-%m-%d %H:%M:%S",
 )
 
-# Set a logging stream handler
+# Set a logging stream handler 
 logger_stream_handler = logging.StreamHandler()
 logger_stream_handler.setLevel(logging.INFO)
 logger_stream_handler.setFormatter(logger_formatter)
@@ -50,6 +51,8 @@ class Trainer:
         self.set_random_seed()
         self.load_training_data()
         self.load_validation_data()
+        self.max_num_speakers = max(self.max_num_speakers_train, self.max_num_speakers_validation)
+        print(f"self.max_num_speakers: {self.max_num_speakers}")
         self.load_network()
         self.load_loss_function()
         self.load_optimizer()
@@ -142,7 +145,7 @@ class Trainer:
             self.params.feature_extractor,
             self.params.sample_rate,
             self.params.feature_extractor_output_vectors_dimension,
-            self.params.pad_num_speakers,
+            self.max_num_speakers,
             self.params.dropout,
             self.params.hidden_size,
             self.params.n_layers,
@@ -265,6 +268,15 @@ class Trainer:
             logger.info("Feature extractor not implemented.")
         return num_frames
 
+    def collate_fn(self, batch)->Tuple[torch.Tensor, torch.Tensor]:
+        audios = []
+        labels = []
+        for audio, label in batch:
+            audios.append(audio)
+            pad_label = pad_labels(label, self.max_num_speakers)
+            labels.append(pad_label)
+        return torch.stack(audios), torch.stack(labels)
+
     def load_training_data(self):
         """Loads the training data and generate the DataLoader."""
         num_frames = self.compute_number_of_frames()
@@ -279,10 +291,12 @@ class Trainer:
             pad_num_speakers=self.params.pad_num_speakers,
             frame_length=self.params.frame_length,
         )
+        self.max_num_speakers_train = training_dataset.max_num_speakers
         data_loader_parameters = {
             "batch_size": self.params.batch_size,
             "shuffle": True,
             "num_workers": self.params.num_workers,
+            "collate_fn": self.collate_fn,
         }
         self.training_generator = DataLoader(training_dataset, **data_loader_parameters)
         self.total_batches = len(self.training_generator)
@@ -303,10 +317,12 @@ class Trainer:
             pad_num_speakers=self.params.pad_num_speakers_validation,
             frame_length=self.params.frame_length,
         )
+        self.max_num_speakers_validation = validation_dataset.max_num_speakers
         data_loader_parameters = {
             "batch_size": self.params.batch_size,
             "shuffle": True,
             "num_workers": self.params.num_workers,
+            "collate_fn": self.collate_fn,
         }
         self.validation_generator = DataLoader(
             validation_dataset, **data_loader_parameters
@@ -424,6 +440,8 @@ class Trainer:
 
             # Assign data to device
             input, label = input.to(self.device), label.to(self.device)
+
+            # Compute the number of speakers in each batch
             n_speakers = np.asarray(
                 [
                     max(torch.where(t.sum(0).cpu() != 0)[0]) + 1 if t.sum() > 0 else 0

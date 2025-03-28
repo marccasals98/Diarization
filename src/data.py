@@ -78,25 +78,24 @@ def speaker_to_index(speaker_list: list)->dict:
         speaker_indices[speaker] = i
     return speaker_indices
 
-def pad_labels(labels: np.array, target_num: int) -> np.array:
+def pad_labels(labels: torch.Tensor, target_num: int) -> torch.Tensor:
     """
     Pads the label matrix to have a fixed number of columns (speakers).
     
     Args:
-        labels (np.array): Label matrix of shape (num_frames, current_num_speakers)
+        labels (torch.Tensor): Label matrix of shape (num_frames, current_num_speakers)
         target_num (int): The desired number of speakers (columns)
     
     Returns:
-        np.array: Label matrix padded to shape (num_frames, target_num)
+        torch.Tensor: Label matrix padded to shape (num_frames, target_num)
     """
-    num_frames, current_num = labels.shape
+    print(f"labels before padding: {labels.shape}")
+    current_num = labels.shape[-1]
     if current_num < target_num:
-        pad_width = ((0, 0), (0, target_num - current_num))
-        labels = np.pad(labels, pad_width, mode='constant')
+        pad_width = (0, target_num - current_num)
+        labels = torch.nn.functional.pad(labels, pad_width, "constant", 0)
+    print(f"labels after padding: {labels.shape}")
     return labels
-
-def data_collator():
-    ...
 
 class TrainDataset(data.Dataset):
     def __init__(self, 
@@ -142,10 +141,15 @@ class TrainDataset(data.Dataset):
             n_samples =len(audio[0])
             seg_samples = int(self.segment_length * sr)
 
+            # compute the maximum number of speakers in a segment (define model topology)
+            self.max_num_speakers = 0
+
             # we iterate over the start of each segment
             for start in range(0, n_samples-seg_samples + 1, seg_samples):
                 labels = self.compute_labels_for_segment(turns, start / sr, (start + seg_samples) / sr, speakers)
                 self.segments.append((audio_file, start / sr, labels))
+
+                self.max_num_speakers = max(self.max_num_speakers, labels.shape[1])
 
     def compute_labels_for_segment(self, turns: list, segment_start: float, segment_end: float, speakers: list)->np.array:
         """This function converts the speaker turn information from your RTTM
@@ -187,7 +191,6 @@ class TrainDataset(data.Dataset):
                     label_matrix[start_frame:end_frame, speaker_indices[speaker]] = 1
                 else:
                     label_matrix[start_frame:end_frame] = speaker
-
         return label_matrix
     
     def __len__(self):
@@ -221,29 +224,14 @@ class TrainDataset(data.Dataset):
             audio_segment = np.pad(audio_segment, (0, pad_length), mode='constant')
         if self.transform:
             audio_segment = self.transform(audio_segment)
-        
+
+        audio_tensor = audio_segment.clone().detach().float()
+        labels = torch.tensor(labels, dtype=torch.long)        
+        #labels = pad_labels(labels, self.max_num_speakers)
+
         # If required, pad the labels to match the maximum number of speakers.
-        print(f"pad_num_speakers: {self.pad_num_speakers}")
         if self.pad_num_speakers is not None:
             labels = pad_labels(labels, self.pad_num_speakers)
-        # Convert to tensors:
-        audio_tensor = audio_segment.clone().detach().float()
-        label_tensor = torch.tensor(labels, dtype=torch.long)
-        return audio_tensor, label_tensor
 
-training_dataset = TrainDataset(
-    audio_files="/gpfs/projects/bsc88/speech/data/raw_data/diarization/voxconverse/audio/dev/audio",
-    rttm_paths="/gpfs/projects/bsc88/speech/data/raw_data/diarization/voxconverse/dev",
-    feature_stride=0.01,
-    n_frames=400,
-    segment_length=5,
-    allow_overlap=True,
-    pad_num_speakers=None,
-    frame_length=0.025,
-)
-print(training_dataset[0][1].shape)
-print(training_dataset[1][1].shape)
-print(training_dataset[2][1].shape)
-print(training_dataset[3][1].shape)
-print(training_dataset[4][1].shape)
-print(training_dataset[30][1].shape)
+        return audio_tensor, labels
+
