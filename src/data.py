@@ -89,12 +89,10 @@ def pad_labels(labels: torch.Tensor, target_num: int) -> torch.Tensor:
     Returns:
         torch.Tensor: Label matrix padded to shape (num_frames, target_num)
     """
-    print(f"labels before padding: {labels.shape}")
     current_num = labels.shape[-1]
     if current_num < target_num:
         pad_width = (0, target_num - current_num)
         labels = torch.nn.functional.pad(labels, pad_width, "constant", 0)
-    print(f"labels after padding: {labels.shape}")
     return labels
 
 class TrainDataset(data.Dataset):
@@ -109,6 +107,7 @@ class TrainDataset(data.Dataset):
                 transform=None,
                 frame_length=0.025):
         
+        self.max_num_speakers=0
         self.audio_files = audio_files
         self.rttm_paths = rttm_paths
         self.feature_stride = feature_stride
@@ -142,14 +141,12 @@ class TrainDataset(data.Dataset):
             seg_samples = int(self.segment_length * sr)
 
             # compute the maximum number of speakers in a segment (define model topology)
-            self.max_num_speakers = 0
 
             # we iterate over the start of each segment
             for start in range(0, n_samples-seg_samples + 1, seg_samples):
                 labels = self.compute_labels_for_segment(turns, start / sr, (start + seg_samples) / sr, speakers)
                 self.segments.append((audio_file, start / sr, labels))
 
-                self.max_num_speakers = max(self.max_num_speakers, labels.shape[1])
 
     def compute_labels_for_segment(self, turns: list, segment_start: float, segment_end: float, speakers: list)->np.array:
         """This function converts the speaker turn information from your RTTM
@@ -169,9 +166,23 @@ class TrainDataset(data.Dataset):
         num_speakers = len(speakers)
         speaker_indices = speaker_to_index(speakers)
 
+        # 1. Create a list of the speakers in the segment
+        speakers_in_segment = []
+        for start_time, duration, speaker in turns:
+            end_time_turn = start_time + duration
+            if end_time_turn > segment_start and start_time < segment_end:
+                speakers_in_segment.append(speaker)
+        # 2. Remove duplicates
+        speakers_in_segment = list(set(speakers_in_segment))
+        # 3. Create a mapping of speaker names to indices
+        speaker_indices_in_segment = speaker_to_index(speakers_in_segment)
+        num_speakers_in_segment = len(speakers_in_segment)
+        
+        self.max_num_speakers = max(self.max_num_speakers, num_speakers_in_segment)
+
         # Initialize the label vector
         if self.allow_overlap == True:
-            label_matrix = np.zeros((self.n_frames, num_speakers), dtype=int)
+            label_matrix = np.zeros((self.n_frames, num_speakers_in_segment), dtype=int)
         else:
             label_matrix = np.zeros(self.n_frames, dtype=int)
 
@@ -188,7 +199,7 @@ class TrainDataset(data.Dataset):
 
                 # Set the label vector values for the speaker turn
                 if self.allow_overlap == True:
-                    label_matrix[start_frame:end_frame, speaker_indices[speaker]] = 1
+                    label_matrix[start_frame:end_frame, speaker_indices_in_segment[speaker]] = 1
                 else:
                     label_matrix[start_frame:end_frame] = speaker
         return label_matrix
