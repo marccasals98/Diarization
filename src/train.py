@@ -437,8 +437,6 @@ class Trainer:
             _, prediction, embeddings = self.net(input)
             pit_loss = self.pit_loss_function(prediction, label, n_speakers)
             dc_loss = self.dc_loss_function(embeddings, label)
-            logger.info(f"pit_loss: {pit_loss}")
-            logger.info(f"dc_loss: {dc_loss}")
 
             # Calculate the loss as the sum of the pit loss and the deep clustering loss (weighted by dc_loss_ratio)
             self.loss = (1-self.params.dc_loss_ratio) * pit_loss + self.params.dc_loss_ratio * dc_loss
