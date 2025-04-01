@@ -9,7 +9,7 @@
 #SBATCH --ntasks=1                      # Número de tareas MPI totales
 #SBATCH --ntasks-per-node=1             # Número de tareas MPI por nodo
 #SBATCH --cpus-per-task=40              # Número de cores por tarea. Threads. $SLURM_CPUS_PER_TASK
-#SBATCH --gres=gpu:2
+#SBATCH --gres=gpu:1
 ################ Logging #########################
 #SBATCH --job-name=diarization
 #SBATCH --verbose
@@ -26,4 +26,4 @@ export TORCH_HOME="/gpfs/projects/bsc88/speech/speaker_recognition/outputs/diari
 srun python src/train.py \
     --model_name "train" \
     --max_epochs 20 \
-    --dc_loss_ratio 0.5
+    --dc_loss_ratio 0.0

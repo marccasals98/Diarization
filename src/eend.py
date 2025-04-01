@@ -84,7 +84,7 @@ class BLSTM_EEND(nn.Module):
                 n_speakers=20,
                 dropout=0.25,
                 hidden_size=256,
-                n_layers=1,
+                n_layers=20,
                 embedding_layers=1,
                 embedding_size=20,
                 n_fft=2048,
@@ -171,7 +171,9 @@ class BLSTM_EEND(nn.Module):
         self.feature_extractor_norm_layer = nn.LayerNorm(feature_extractor_output_vectors_dimension)
 
 
-    def forward(self, x:torch.Tensor, hidden_state: torch.Tensor = None, activation=None
+    def forward(self, x:torch.Tensor,
+                hidden_state: torch.Tensor = None, 
+                activation=None
                 )->Tuple[Tuple[ torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor, torch.Tensor]:
         
         """The forward pass of the model.
