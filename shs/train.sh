@@ -9,7 +9,7 @@
 #SBATCH --ntasks=1                      # Número de tareas MPI totales
 #SBATCH --ntasks-per-node=1             # Número de tareas MPI por nodo
 #SBATCH --cpus-per-task=40              # Número de cores por tarea. Threads. $SLURM_CPUS_PER_TASK
-#SBATCH --gres=gpu:2
+#SBATCH --gres=gpu:1
 ################ Logging #########################
 #SBATCH --job-name=diarization
 #SBATCH --verbose

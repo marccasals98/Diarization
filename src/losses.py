@@ -58,9 +58,9 @@ def pit_loss_multispk(logits: List[torch.Tensor],
             max_value = torch.max(torch.abs(cost_matrice))
 
             # We assign the max value to the new speakers that we have added
-            cost_matrices[-(max_n_speakers-n_speakers[i]):] = max_value
-            cost_matrices[:, -(max_n_speakers-n_speakers[i]):] = max_value
-        
+            cost_matrice[n_speakers[i]:, :] = max_value  
+            cost_matrice[:, n_speakers[i]:] = max_value  
+
         # Compute the linear sum assignment
         # rows are the predictions, columns are the references.
         pred_alig, ref_alig = linear_sum_assignment(cost_matrice.cpu().numpy())

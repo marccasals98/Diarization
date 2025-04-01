@@ -151,7 +151,7 @@ class ArgsParser:
         self.parser.add_argument(
             '--n_layers',
             type=int,
-            default=1,
+            default=20,
         )
         self.parser.add_argument(
             '--embedding_layers',
