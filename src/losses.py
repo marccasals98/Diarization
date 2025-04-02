@@ -140,7 +140,7 @@ class PITLoss(_Loss):
         Returns:
             torch.Tensor: _description_
         """
-        return pit_loss_multispk(input, target, n_speakers, self.detach_attractor_loss), naive_pit_loss(input, target, label_delay=0)
+        return naive_pit_loss(input, target, label_delay=0)
 
 
 def deep_clusering(embedding: torch.Tensor, label: torch.Tensor) -> torch.Tensor:
