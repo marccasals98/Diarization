@@ -25,5 +25,6 @@ export TORCH_HOME="/gpfs/projects/bsc88/speech/speaker_recognition/outputs/diari
 
 srun python src/train.py \
     --model_name "debug" \
-    --max_epochs 20 \
+    --max_epochs 2 \
+    --eval_and_save_best_model_every 100 \
     --dc_loss_ratio 0.0
